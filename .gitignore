@@ -1,8 +1,19 @@
+# Maven build output
+target/
+
+# IntelliJ
+.idea/
+*.iml
+
 # Compiled class file
 *.class
 
 # Log file
 *.log
+
+# OS
+.DS_Store
+Thumbs.db
 
 # BlueJ files
 *.ctxt
