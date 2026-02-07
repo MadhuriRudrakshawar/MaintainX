@@ -16,5 +16,6 @@ public class UserDTO {
 
     @NotBlank
     private String password;
+
 }
 

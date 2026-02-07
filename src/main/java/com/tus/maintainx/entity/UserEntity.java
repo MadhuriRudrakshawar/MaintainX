@@ -19,4 +19,5 @@ public class UserEntity {
     @Column(nullable = false, length = 255)
     private String password;
 
+
 }
