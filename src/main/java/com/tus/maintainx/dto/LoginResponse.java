@@ -1,7 +1,9 @@
-package com.tus.maintainx.entity;
+package com.tus.maintainx.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
+@Data
 @AllArgsConstructor
 public class LoginResponse {
 

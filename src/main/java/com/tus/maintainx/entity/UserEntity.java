@@ -1,9 +1,11 @@
 package com.tus.maintainx.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 @Entity
 @Table(name = "users")
+@Data
 public class UserEntity {
 
     @Id
