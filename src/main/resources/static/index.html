@@ -12,7 +12,7 @@
 </head>
 <body>
 
-<div class="container mt-5" style="max-width: 360px;">
+<div id="loginView" class="container mt-5" style="max-width: 360px;">
     <h4 class="text-center">MaintainX</h4>
     <p class="text-center">Login</p>
 
@@ -25,9 +25,14 @@
     <button id="loginBtn" class="btn btn-primary w-100">Login</button>
 </div>
 
-
+<div id="homeView" class="bg-dark text-white d-none" style="min-height:100vh;">
+    <div class="d-flex justify-content-center align-items-center" style="min-height:100vh;">
+        <button id="logoutBtn" class="btn btn-light">Logout</button>
+    </div>
+</div>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="script.js"></script>
 </body>
+
 </html>
