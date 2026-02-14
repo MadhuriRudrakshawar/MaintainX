@@ -8,10 +8,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/network-elements")
@@ -27,6 +26,15 @@ public class NetworkElementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @GetMapping
+    public ResponseEntity<List<NetworkElementEntity>> getAll(){
+        return ResponseEntity.ok(networkElementService.getAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<NetworkElementEntity> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(networkElementService.getById(id));
+    }
 
 
 }

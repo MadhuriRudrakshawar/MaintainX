@@ -4,7 +4,11 @@ import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,4 +29,16 @@ public class NetworkElementService {
 
     }
 
+    public List<NetworkElementEntity> getAll(){
+        return networkElementRepository.findAll();
+    }
+
+    public NetworkElementEntity getById(Long id){
+        return networkElementRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Network element not found with id=" + id
+                ));
+
+    }
 }
