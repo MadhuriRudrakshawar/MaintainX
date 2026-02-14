@@ -52,8 +52,10 @@ public class NetworkElementController {
         return ResponseEntity.ok(networkElementService.activate(id));
     }
 
-
-
-
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        networkElementService.delete(id);
+    }
 
 }

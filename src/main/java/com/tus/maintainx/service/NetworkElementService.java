@@ -73,4 +73,14 @@ public class NetworkElementService {
 
     }
 
+    public void delete(Long id) {
+        if (!networkElementRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Network element not found with id=" + id
+            );
+        }
+        networkElementRepository.deleteById(id);
+    }
+
 }

@@ -1,153 +1,190 @@
 $(function () {
+    const API = "/api/v1/network-elements";
 
     const table = $("#neTable").DataTable({
         pageLength: 5,
         lengthChange: false,
-        columnDefs: [
-            { orderable: false, targets: 5 }
+        rowId: "id",
+        columnDefs: [{ orderable: false, targets: 5 }],
+        columns: [
+            { data: "elementCode" },
+            { data: "name" },
+            { data: "elementType" },
+            { data: "region" },
+            { data: "status", render: (v) => makeStatusBadge(v) },
+            { data: null, render: () => actionsHtml() }
         ]
     });
 
-    // Save -> add row
+    loadAll();
+
+    function loadAll() {
+        $.get(API)
+            .done((rows) => {
+                table.clear().rows.add(rows).draw();
+            })
+            .fail((xhr) => {
+                alert("Failed to load network elements");
+                console.log(xhr.responseText);
+            });
+    }
+
+    // Save button (Add or Update)
     $("#saveElementBtn").on("click", function () {
+        const payload = readForm();
+        if (!payload) return;
 
-        const code = $("#neCode").val().trim();
-        const name = $("#neName").val().trim();
+        const editId = $(this).data("editId");
 
-        const typeVal = $("#neType").val();
-        const typeText = $("#neType option:selected").text();
-
-        const regionVal = $("#neRegion").val();
-        const regionText = $("#neRegion option:selected").text();
-
-        const statusVal = $('input[name="neStatus"]:checked').val();
-
-        if (!code || !name || !typeVal || !regionVal || !statusVal) {
-            alert("Please fill all fields");
-            return;
+        if (editId) {
+            // UPDATE
+            $.ajax({
+                url: `${API}/${editId}`,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done((updated) => {
+                    table.row("#" + updated.id).data(updated).draw(false);
+                    clearForm();
+                    $("#saveElementBtn").removeData("editId");
+                    $("#addElementPanel").collapse("hide");
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Update failed");
+                    console.log(xhr.responseText);
+                });
+        } else {
+            // CREATE
+            $.ajax({
+                url: API,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done((created) => {
+                    table.row.add(created).draw(false);
+                    clearForm();
+                    $("#addElementPanel").collapse("hide");
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Create failed");
+                    console.log(xhr.responseText);
+                });
         }
-
-        const statusBadge = makeStatusBadge(statusVal);
-
-        const actionsHtml = `
-      <div class="btn-group btn-group-sm" role="group">
-        <button type="button" class="btn btn-outline-primary js-edit">Edit</button>
-        <button type="button" class="btn btn-outline-danger js-deactivate">Deactivate</button>
-      </div>
-    `;
-
-        table.row.add([
-            code,
-            name,
-            typeText,
-            regionText,
-            statusBadge,
-            actionsHtml
-        ]).draw(false);
-
-        // clear
-        $("#neCode").val("");
-        $("#neName").val("");
-        $("#neType").val("");
-        $("#neRegion").val("");
-        $("#statusActive").prop("checked", true);
     });
 
-    // Deactivate button
-    $("#neTable").on("click", ".js-deactivate", function () {
-        const row = table.row($(this).closest("tr"));
-        const data = row.data();
-
-        // If already deactive, do nothing
-        const statusText = stripHtml(data[4]).toUpperCase();
-        if (statusText.includes("DEACTIVE")) return;
-
-        data[4] = makeStatusBadge("DEACTIVE");
-        row.data(data).draw(false);
-    });
-
-    // Edit button -> put row values back into form
+    // Edit button
     $("#neTable").on("click", ".js-edit", function () {
         const row = table.row($(this).closest("tr"));
-        const data = row.data();
+        const data = row.data(); // full entity
 
-        // fill form
-        $("#neCode").val(data[0]);
-        $("#neName").val(data[1]);
-
-        // match select by visible text
-        $("#neType").val(valueByText("#neType", stripHtml(data[2])));
-        $("#neRegion").val(valueByText("#neRegion", stripHtml(data[3])));
-
-        const statusText = stripHtml(data[4]).toUpperCase();
-        if (statusText.includes("DEACTIVE")) $("#statusDeactive").prop("checked", true);
-        else $("#statusActive").prop("checked", true);
-
-        // store row index to update on save
-        $("#saveElementBtn").data("editRow", row.index());
-
-        // open the collapse panel so user sees the form
+        fillForm(data);
+        $("#saveElementBtn").data("editId", data.id);
         $("#addElementPanel").collapse("show");
     });
 
-    // Save should update existing row if we are editing
-    $("#saveElementBtn").on("click", function () {
-        const editIndex = $(this).data("editRow");
-        if (editIndex === undefined) return;
+    // Deactivate / Activate toggle
+    $("#neTable").on("click", ".js-toggle", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
 
-        const code = $("#neCode").val().trim();
+        const isActive = String(data.status).toUpperCase() === "ACTIVE";
+        const endpoint = isActive ? "deactivate" : "activate";
+
+        $.ajax({
+            url: `${API}/${data.id}/${endpoint}`,
+            method: "PATCH"
+        })
+            .done((updated) => {
+                table.row("#" + updated.id).data(updated).draw(false);
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Status update failed");
+                console.log(xhr.responseText);
+            });
+    });
+
+    // Delete button
+    $("#neTable").on("click", ".js-delete", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        if (!confirm(`Delete ${data.elementCode}?`)) return;
+
+        $.ajax({
+            url: `${API}/${data.id}`,
+            method: "DELETE"
+        })
+            .done(() => {
+                row.remove().draw(false);
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Delete failed");
+                console.log(xhr.responseText);
+            });
+    });
+
+
+    // Helpers
+    function readForm() {
+        const elementCode = $("#neCode").val().trim();
         const name = $("#neName").val().trim();
+        const elementType = $("#neType").val();
+        const region = $("#neRegion").val();
+        const status = $('input[name="neStatus"]:checked').val(); // ACTIVE / DEACTIVE
 
-        const typeVal = $("#neType").val();
-        const typeText = $("#neType option:selected").text();
-
-        const regionVal = $("#neRegion").val();
-        const regionText = $("#neRegion option:selected").text();
-
-        const statusVal = $('input[name="neStatus"]:checked').val();
-
-        if (!code || !name || !typeVal || !regionVal || !statusVal) {
+        if (!elementCode || !name || !elementType || !region || !status) {
             alert("Please fill all fields");
-            return;
+            return null;
         }
 
-        const statusBadge = makeStatusBadge(statusVal);
+        return { elementCode, name, elementType, region, status };
+    }
 
-        const row = table.row(editIndex);
-        const old = row.data();
+    function fillForm(e) {
+        $("#neCode").val(e.elementCode);
+        $("#neName").val(e.name);
+        $("#neType").val(e.elementType);
+        $("#neRegion").val(e.region);
 
-        old[0] = code;
-        old[1] = name;
-        old[2] = typeText;
-        old[3] = regionText;
-        old[4] = statusBadge;
+        const s = String(e.status).toUpperCase();
+        if (s === "DEACTIVE") $("#statusDeactive").prop("checked", true);
+        else $("#statusActive").prop("checked", true);
+    }
 
-        row.data(old).draw(false);
-
-        // clear edit mode + form
-        $("#saveElementBtn").removeData("editRow");
+    function clearForm() {
         $("#neCode").val("");
         $("#neName").val("");
         $("#neType").val("");
         $("#neRegion").val("");
         $("#statusActive").prop("checked", true);
-    });
+    }
 
     function makeStatusBadge(status) {
-        return status === "ACTIVE"
+        const s = String(status || "").toUpperCase();
+        return s === "ACTIVE"
             ? '<span class="badge text-bg-success">ACTIVE</span>'
             : '<span class="badge text-bg-danger">DEACTIVE</span>';
     }
 
-    function stripHtml(html) {
-        return $("<div>").html(html).text();
+    function actionsHtml() {
+        return `
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-primary js-edit">Edit</button>
+        <button type="button" class="btn btn-outline-warning js-toggle">Active/Deactive</button>
+        <button type="button" class="btn btn-outline-danger js-delete">Delete</button>
+      </div>
+    `;
     }
 
-    function valueByText(selectId, text) {
-        const $opt = $(selectId + " option").filter(function () {
-            return $(this).text().trim().toLowerCase() === String(text).trim().toLowerCase();
-        }).first();
-        return $opt.val() || "";
-    }
+    function errMsg(xhr) {
 
+        try {
+            const j = JSON.parse(xhr.responseText);
+            return j.message;
+        } catch (e) {
+            return null;
+        }
+    }
 });
