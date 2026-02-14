@@ -37,7 +37,7 @@ $(function () {
     `;
 
         table.row.add([
-            code,           /
+            code,
             name,
             typeText,
             regionText,
@@ -56,7 +56,7 @@ $(function () {
     // Deactivate button
     $("#neTable").on("click", ".js-deactivate", function () {
         const row = table.row($(this).closest("tr"));
-        const data = row.data(); /
+        const data = row.data();
 
         // If already deactive, do nothing
         const statusText = stripHtml(data[4]).toUpperCase();

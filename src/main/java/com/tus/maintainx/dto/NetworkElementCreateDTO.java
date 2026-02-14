@@ -23,4 +23,7 @@ public class NetworkElementCreateDTO {
     @NotBlank
     private String region;
 
+    @NotBlank
+    private String status;
+
 }
