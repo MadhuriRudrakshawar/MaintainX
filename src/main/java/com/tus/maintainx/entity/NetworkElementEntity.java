@@ -16,13 +16,13 @@ public class NetworkElementEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "element_code", nullable = false, unique = true, length = 40)
+    @Column( nullable = false, unique = true, length = 40)
     private String elementCode;
 
     @Column(nullable = false, length = 120)
     private String name;
 
-    @Column(name = "element_type", nullable = false, length = 30)
+    @Column( nullable = false, length = 30)
     private String elementType;
 
     @Column(nullable = false, length = 60)

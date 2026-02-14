@@ -4,7 +4,7 @@ $(function () {
         pageLength: 5,
         lengthChange: false,
         columnDefs: [
-            { orderable: false, targets: 5 } // Actions not sortable
+            { orderable: false, targets: 5 }
         ]
     });
 
@@ -37,7 +37,7 @@ $(function () {
     `;
 
         table.row.add([
-            code,           // keep minimal; add escapeHtml if you want safety
+            code,           /
             name,
             typeText,
             regionText,
@@ -56,7 +56,7 @@ $(function () {
     // Deactivate button
     $("#neTable").on("click", ".js-deactivate", function () {
         const row = table.row($(this).closest("tr"));
-        const data = row.data(); // array: [code,name,type,region,status,actions]
+        const data = row.data(); /
 
         // If already deactive, do nothing
         const statusText = stripHtml(data[4]).toUpperCase();
@@ -93,7 +93,7 @@ $(function () {
     // Save should update existing row if we are editing
     $("#saveElementBtn").on("click", function () {
         const editIndex = $(this).data("editRow");
-        if (editIndex === undefined) return; // normal add handled above
+        if (editIndex === undefined) return;
 
         const code = $("#neCode").val().trim();
         const name = $("#neName").val().trim();
@@ -144,7 +144,6 @@ $(function () {
     }
 
     function valueByText(selectId, text) {
-        // returns the option value where visible text matches
         const $opt = $(selectId + " option").filter(function () {
             return $(this).text().trim().toLowerCase() === String(text).trim().toLowerCase();
         }).first();
