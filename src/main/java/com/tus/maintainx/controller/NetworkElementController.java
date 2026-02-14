@@ -36,5 +36,24 @@ public class NetworkElementController {
         return ResponseEntity.ok(networkElementService.getById(id));
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<NetworkElementEntity> update(@PathVariable Long id, @Valid @RequestBody NetworkElementCreateDTO dto){
+
+        return ResponseEntity.ok(networkElementService.update(id, dto));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<NetworkElementEntity> deactivate(@PathVariable Long id) {
+        return ResponseEntity.ok(networkElementService.deactivate(id));
+    }
+
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<NetworkElementEntity> activate(@PathVariable Long id) {
+        return ResponseEntity.ok(networkElementService.activate(id));
+    }
+
+
+
+
 
 }

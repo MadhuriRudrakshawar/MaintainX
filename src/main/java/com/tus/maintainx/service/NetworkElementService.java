@@ -41,4 +41,36 @@ public class NetworkElementService {
                 ));
 
     }
+
+    public NetworkElementEntity update(Long id, NetworkElementCreateDTO dto){
+
+        NetworkElementEntity existing = getById(id);
+
+        existing.setElementCode(dto.getElementCode().trim());
+        existing.setName(dto.getName().trim());
+        existing.setElementType(dto.getElementType().trim());
+        existing.setRegion(dto.getRegion().trim());
+        existing.setStatus(dto.getStatus());
+        return networkElementRepository.save(existing);
+
+    }
+
+    public NetworkElementEntity deactivate(Long id){
+        NetworkElementEntity existing = getById(id);
+
+        existing.setStatus("DEACTIVE");
+
+        return networkElementRepository.save(existing);
+
+    }
+
+    public NetworkElementEntity activate(Long id){
+        NetworkElementEntity existing = getById(id);
+
+        existing.setStatus("ACTIVE");
+
+        return networkElementRepository.save(existing);
+
+    }
+
 }
