@@ -16,6 +16,43 @@ $(function () {
         ]
     });
 
+    if (sessionStorage.getItem("role")) {
+        showHome();
+    } else {
+        showLogin();
+    }
+
+    $("#loginBtn").on("click", login);
+
+    $("#password").on("keydown", function (e) {
+        if (e.key === "Enter") login();
+    });
+
+    $("#logoutBtn").on("click", logout);
+
+});
+
+function showHome() {
+    $("#loginView").addClass("d-none");
+    $("#homeView").removeClass("d-none");
+}
+
+function showLogin() {
+    $("#homeView").addClass("d-none");
+    $("#loginView").removeClass("d-none");
+}
+
+function login() {
+    const username = $("#username").val().trim();
+    const password = $("#password").val();
+
+    if (!username || !password) return;
+
+    $.ajax({
+        url: "/api/v1/auth/login",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ username, password }),
     loadAll();
 
     function loadAll() {
@@ -105,11 +142,21 @@ $(function () {
             });
     });
 
+        success: function (res) {
+            sessionStorage.setItem("role", res.role || "");
+            sessionStorage.setItem("username", res.username || username);
+            showHome();
+        },
     // Delete button
     $("#neTable").on("click", ".js-delete", function () {
         const row = table.row($(this).closest("tr"));
         const data = row.data();
 
+        error: function () {
+            // stay on login view (no alerts)
+        }
+    });
+}
         if (!confirm(`Delete ${data.elementCode}?`)) return;
 
         $.ajax({
@@ -142,12 +189,17 @@ $(function () {
         return { elementCode, name, elementType, region, status };
     }
 
+function logout() {
+    sessionStorage.clear();
     function fillForm(e) {
         $("#neCode").val(e.elementCode);
         $("#neName").val(e.name);
         $("#neType").val(e.elementType);
         $("#neRegion").val(e.region);
 
+    // clear form
+    $("#username").val("");
+    $("#password").val("");
         const s = String(e.status).toUpperCase();
         if (s === "DEACTIVE") $("#statusDeactive").prop("checked", true);
         else $("#statusActive").prop("checked", true);
@@ -161,6 +213,8 @@ $(function () {
         $("#statusActive").prop("checked", true);
     }
 
+    showLogin();
+}
     function makeStatusBadge(status) {
         const s = String(status || "").toUpperCase();
         return s === "ACTIVE"
