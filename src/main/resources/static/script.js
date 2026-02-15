@@ -1,23 +1,27 @@
 $(function () {
     const API = "/api/v1/network-elements";
 
+    $.ajaxSetup({xhrFields: {withCredentials: true}});
+
+
     const table = $("#neTable").DataTable({
         pageLength: 5,
         lengthChange: false,
         rowId: "id",
-        columnDefs: [{ orderable: false, targets: 5 }],
+        columnDefs: [{orderable: false, targets: 5}],
         columns: [
-            { data: "elementCode" },
-            { data: "name" },
-            { data: "elementType" },
-            { data: "region" },
-            { data: "status", render: (v) => makeStatusBadge(v) },
-            { data: null, render: () => actionsHtml() }
+            {data: "elementCode"},
+            {data: "name"},
+            {data: "elementType"},
+            {data: "region"},
+            {data: "status", render: (v) => makeStatusBadge(v)},
+            {data: null, render: () => actionsHtml()}
         ]
     });
 
     if (sessionStorage.getItem("role")) {
         showHome();
+        loadAll();
     } else {
         showLogin();
     }
@@ -29,42 +33,6 @@ $(function () {
     });
 
     $("#logoutBtn").on("click", logout);
-
-});
-
-function showHome() {
-    $("#loginView").addClass("d-none");
-    $("#homeView").removeClass("d-none");
-}
-
-function showLogin() {
-    $("#homeView").addClass("d-none");
-    $("#loginView").removeClass("d-none");
-}
-
-function login() {
-    const username = $("#username").val().trim();
-    const password = $("#password").val();
-
-    if (!username || !password) return;
-
-    $.ajax({
-        url: "/api/v1/auth/login",
-        method: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ username, password }),
-    loadAll();
-
-    function loadAll() {
-        $.get(API)
-            .done((rows) => {
-                table.clear().rows.add(rows).draw();
-            })
-            .fail((xhr) => {
-                alert("Failed to load network elements");
-                console.log(xhr.responseText);
-            });
-    }
 
     // Save button (Add or Update)
     $("#saveElementBtn").on("click", function () {
@@ -114,7 +82,7 @@ function login() {
     // Edit button
     $("#neTable").on("click", ".js-edit", function () {
         const row = table.row($(this).closest("tr"));
-        const data = row.data(); // full entity
+        const data = row.data();
 
         fillForm(data);
         $("#saveElementBtn").data("editId", data.id);
@@ -142,21 +110,11 @@ function login() {
             });
     });
 
-        success: function (res) {
-            sessionStorage.setItem("role", res.role || "");
-            sessionStorage.setItem("username", res.username || username);
-            showHome();
-        },
     // Delete button
     $("#neTable").on("click", ".js-delete", function () {
         const row = table.row($(this).closest("tr"));
         const data = row.data();
 
-        error: function () {
-            // stay on login view (no alerts)
-        }
-    });
-}
         if (!confirm(`Delete ${data.elementCode}?`)) return;
 
         $.ajax({
@@ -172,6 +130,66 @@ function login() {
             });
     });
 
+    function login() {
+        const username = $("#username").val().trim();
+        const password = $("#password").val();
+
+        if (!username || !password) {
+            alert("Enter username and password");
+            return;
+        }
+
+        $.ajax({
+            url: "/api/v1/auth/login",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({username, password}),
+            success: function (res) {
+                sessionStorage.setItem("role", res.role || "");
+                sessionStorage.setItem("username", res.username || username);
+                showHome();
+                loadAll();
+                // clear login inputs after successful login
+                $("#username").val("");
+                $("#password").val("");
+            },
+            error: function (xhr) {
+                alert("Login failed: " + (xhr.responseText || xhr.status));
+                console.log(xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    function loadAll() {
+        $.get(API)
+            .done((rows) => {
+                table.clear().rows.add(rows).draw();
+            })
+            .fail((xhr) => {
+                alert("Failed to load network elements");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function logout() {
+        sessionStorage.clear();
+
+        // clear login form
+        $("#username").val("");
+        $("#password").val("");
+
+        showLogin();
+    }
+
+    function showHome() {
+        $("#loginView").addClass("d-none");
+        $("#homeView").removeClass("d-none");
+    }
+
+    function showLogin() {
+        $("#homeView").addClass("d-none");
+        $("#loginView").removeClass("d-none");
+    }
 
     // Helpers
     function readForm() {
@@ -186,20 +204,15 @@ function login() {
             return null;
         }
 
-        return { elementCode, name, elementType, region, status };
+        return {elementCode, name, elementType, region, status};
     }
 
-function logout() {
-    sessionStorage.clear();
     function fillForm(e) {
         $("#neCode").val(e.elementCode);
         $("#neName").val(e.name);
         $("#neType").val(e.elementType);
         $("#neRegion").val(e.region);
 
-    // clear form
-    $("#username").val("");
-    $("#password").val("");
         const s = String(e.status).toUpperCase();
         if (s === "DEACTIVE") $("#statusDeactive").prop("checked", true);
         else $("#statusActive").prop("checked", true);
@@ -213,8 +226,6 @@ function logout() {
         $("#statusActive").prop("checked", true);
     }
 
-    showLogin();
-}
     function makeStatusBadge(status) {
         const s = String(status || "").toUpperCase();
         return s === "ACTIVE"
@@ -233,7 +244,6 @@ function logout() {
     }
 
     function errMsg(xhr) {
-
         try {
             const j = JSON.parse(xhr.responseText);
             return j.message;
