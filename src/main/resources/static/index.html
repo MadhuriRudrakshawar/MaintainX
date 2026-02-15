@@ -154,10 +154,83 @@
 
     <!-- ===================== ENGINEER PAGE ===================== -->
     <div class="d-none" id="engineerPage">
-        <div class="alert alert-info mb-0">Engineer Dashboard</div>
-    </div>
 
-</div>
+
+        <button aria-controls="addWindowPanel" aria-expanded="false"
+                class="btn btn-primary btn-sm"
+                data-bs-target="#addWindowPanel"
+                data-bs-toggle="collapse" type="button">
+            <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
+        </button>
+
+        <div class="d-flex justify-content-center">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="collapse mt-3" id="addWindowPanel">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white py-2">
+                            <span class="fw-semibold">Maintenance Window Booking</span>
+                        </div>
+
+                        <div class="card-body">
+
+                            <div class="mb-2">
+                                <label class="form-label small" for="mwTitle">Title</label>
+                                <input class="form-control form-control-sm" id="mwTitle"
+                                       placeholder="E.g. Core router patching">
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small" for="mwElements">Select Network Elements</label>
+                                <select class="form-select form-select-sm" id="mwElements" multiple>
+                                </select>
+                                <div class="form-text small">Hold Ctrl to select multiple.</div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small" for="mwStart">Start Time</label>
+                                <input class="form-control form-control-sm" id="mwStart" type="datetime-local">
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small" for="mwEnd">End Time</label>
+                                <input class="form-control form-control-sm" id="mwEnd" type="datetime-local">
+                            </div>
+
+
+
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button class="btn btn-outline-secondary btn-sm"
+                                        data-bs-target="#addWindowPanel"
+                                        data-bs-toggle="collapse" type="button">
+                                    Cancel
+                                </button>
+                                <button class="btn btn-primary btn-sm" id="saveWindowBtn" type="button">Save</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mt-4 px-0">
+            <h6 class="mb-2">Maintenance Windows</h6>
+            <table class="table table-striped table-sm" id="mwTable">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Elements</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
 
 <!-- JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
