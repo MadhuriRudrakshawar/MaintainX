@@ -21,7 +21,7 @@ $(function () {
 
     if (sessionStorage.getItem("role")) {
         showHome();
-        loadAll();
+        routeByRole(sessionStorage.getItem("role"));
     } else {
         showLogin();
     }
@@ -148,7 +148,7 @@ $(function () {
                 sessionStorage.setItem("role", res.role || "");
                 sessionStorage.setItem("username", res.username || username);
                 showHome();
-                loadAll();
+                routeByRole(res.role);
                 // clear login inputs after successful login
                 $("#username").val("");
                 $("#password").val("");
@@ -178,6 +178,7 @@ $(function () {
         $("#username").val("");
         $("#password").val("");
 
+        hideAllRolePages();
         showLogin();
     }
 
@@ -189,6 +190,30 @@ $(function () {
     function showLogin() {
         $("#homeView").addClass("d-none");
         $("#loginView").removeClass("d-none");
+    }
+
+
+    function hideAllRolePages() {
+        $("#adminPage, #approverPage, #engineerPage").addClass("d-none");
+    }
+
+    function routeByRole(role) {
+        const r = String(role || "").toUpperCase();
+
+        hideAllRolePages();
+
+        if (r === "ADMIN") {
+            $("#adminPage").removeClass("d-none");
+            loadAll();
+            
+        } else if (r === "APPROVER") {
+            $("#approverPage").removeClass("d-none");
+        } else if (r === "ENGINEER") {
+            $("#engineerPage").removeClass("d-none");
+        } else {
+            // unknown role -> force logout
+            logout();
+        }
     }
 
     // Helpers
