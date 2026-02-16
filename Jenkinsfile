@@ -3,9 +3,8 @@ pipeline {
 
   environment {
     GITHUB_TOKEN = credentials('github-token')
-    SONAR_TOKEN  = credentials('sonar-token')
+    SONAR_TOKEN  = credentials('sonar-token-maintainx')
     SONAR_PROJECT_KEY = 'maintainx'
-    SONAR_HOST_URL    = 'http://localhost:9000'
   }
 
   triggers {
@@ -36,7 +35,6 @@ pipeline {
           powershell '''
             mvn -B sonar:sonar `
               "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
-              "-Dsonar.host.url=$env:SONAR_HOST_URL" `
               "-Dsonar.token=$env:SONAR_TOKEN"
           '''
         }
