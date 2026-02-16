@@ -3,9 +3,9 @@ pipeline {
 
   environment {
     GITHUB_TOKEN = credentials('github-token')
-    SONAR_TOKEN = credentials('sonar-token')
+    SONAR_TOKEN  = credentials('sonar-token')
     SONAR_PROJECT_KEY = 'maintainx'
-    SONAR_HOST_URL = 'http://localhost:9000'
+    SONAR_HOST_URL    = 'http://localhost:9000'
   }
 
   triggers {
@@ -17,34 +17,46 @@ pipeline {
   }
 
   stages {
+
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+      }
     }
 
     stage('Build, Test & Coverage') {
-                steps {
-                    powershell 'mvn clean verify'
-                }
-            }
+      steps {
+        powershell 'mvn -B clean verify'
+      }
     }
 
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv('LocalSonar') {
+          powershell '''
+            mvn -B sonar:sonar `
+              "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
+              "-Dsonar.host.url=$env:SONAR_HOST_URL" `
+              "-Dsonar.token=$env:SONAR_TOKEN"
+          '''
+        }
+      }
+    }
 
-       stage('SonarQube Analysis') {
-                steps {
-                    withSonarQubeEnv('LocalSonar') {
-                        powershell '''
-                          mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" "-Dsonar.host.url=$env:SONAR_HOST_URL" "-Dsonar.token=$env:SONAR_TOKEN"
-                        '''
-                    }
-                }
-            }
-
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
 
   }
 
   post {
     always {
       junit 'target/surefire-reports/*.xml'
+
     }
   }
 }
