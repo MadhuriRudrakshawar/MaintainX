@@ -33,9 +33,7 @@ pipeline {
       steps {
         withSonarQubeEnv('LocalSonar') {
           powershell '''
-            mvn -B sonar:sonar `
-              "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
-              "-Dsonar.token=$env:SONAR_TOKEN"
+            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" "-Dsonar.token=$env:SONAR_TOKEN"
           '''
         }
       }
@@ -43,7 +41,7 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 5, unit: 'MINUTES') {
+        timeout(time: 10, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
