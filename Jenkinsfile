@@ -33,7 +33,7 @@ pipeline {
       steps {
         withSonarQubeEnv('LocalSonar') {
           powershell '''
-            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" "-Dsonar.token=$env:SONAR_TOKEN"
+            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY"
           '''
         }
       }
