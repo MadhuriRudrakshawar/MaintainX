@@ -46,26 +46,19 @@ pipeline {
         }
       }
     }
-
   }
 
   post {
     always {
       junit 'target/surefire-reports/*.xml'
 
+      publishHTML(target: [
+        reportDir: 'target/site/jacoco',
+        reportFiles: 'index.html',
+        reportName: 'JaCoCo Code Coverage',
+        keepAll: true,
+        alwaysLinkToLastBuild: true
+      ])
     }
   }
-  post {
-      always {
-          publishHTML(target: [
-              reportDir: 'target/site/jacoco',
-              reportFiles: 'index.html',
-              reportName: 'JaCoCo Code Coverage',
-              keepAll: true,
-              alwaysLinkToLastBuild: true
-          ])
-      }
-  }
-
-
 }
