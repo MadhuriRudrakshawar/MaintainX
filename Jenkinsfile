@@ -16,7 +16,6 @@ pipeline {
   }
 
   stages {
-
     stage('Checkout') {
       steps {
         checkout scm
@@ -28,20 +27,6 @@ pipeline {
         powershell 'mvn -B clean verify'
       }
     }
-
-    post {
-        always {
-          junit 'target/surefire-reports/*.xml'
-
-          publishHTML(target: [
-            reportDir: 'target/site/jacoco',
-            reportFiles: 'index.html',
-            reportName: 'JaCoCo Code Coverage',
-            keepAll: true,
-            alwaysLinkToLastBuild: true
-          ])
-        }
-      }
 
     stage('SonarQube Analysis') {
       steps {
@@ -62,5 +47,17 @@ pipeline {
     }
   }
 
+  post {
+    always {
+      junit 'target/surefire-reports/*.xml'
 
+      publishHTML(target: [
+        reportDir: 'target/site/jacoco',
+        reportFiles: 'index.html',
+        reportName: 'JaCoCo Code Coverage',
+        keepAll: true,
+        alwaysLinkToLastBuild: true
+      ])
+    }
+  }
 }
