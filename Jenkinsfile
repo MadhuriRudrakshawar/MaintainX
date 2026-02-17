@@ -29,6 +29,20 @@ pipeline {
       }
     }
 
+    post {
+        always {
+          junit 'target/surefire-reports/*.xml'
+
+          publishHTML(target: [
+            reportDir: 'target/site/jacoco',
+            reportFiles: 'index.html',
+            reportName: 'JaCoCo Code Coverage',
+            keepAll: true,
+            alwaysLinkToLastBuild: true
+          ])
+        }
+      }
+
     stage('SonarQube Analysis') {
       steps {
         withSonarQubeEnv('LocalSonar') {
@@ -41,24 +55,12 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 10, unit: 'MINUTES') {
+        timeout(time: 30, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
     }
   }
 
-  post {
-    always {
-      junit 'target/surefire-reports/*.xml'
 
-      publishHTML(target: [
-        reportDir: 'target/site/jacoco',
-        reportFiles: 'index.html',
-        reportName: 'JaCoCo Code Coverage',
-        keepAll: true,
-        alwaysLinkToLastBuild: true
-      ])
-    }
-  }
 }
