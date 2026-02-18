@@ -12,6 +12,7 @@ import com.tus.maintainx.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -67,5 +68,13 @@ public class MaintenanceWindowService {
                 .networkElementIds(ids)
                 .networkElementNames(names)
                 .build();
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        if (!maintenanceWindowRepository.existsById(id)) {
+            throw new RuntimeException("Maintenance Window not found: " + id);
+        }
+        maintenanceWindowRepository.deleteById(id);
     }
 }
