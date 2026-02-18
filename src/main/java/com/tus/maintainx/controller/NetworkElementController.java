@@ -2,7 +2,7 @@ package com.tus.maintainx.controller;
 
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
-import com.tus.maintainx.entity.NetworkElementEntity;
+import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.service.NetworkElementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,35 +20,35 @@ public class NetworkElementController {
     private final NetworkElementService networkElementService;
 
     @PostMapping
-    public ResponseEntity<NetworkElementEntity> create(@Valid @RequestBody NetworkElementCreateDTO dto){
+    public ResponseEntity<NetworkElementResponseDTO> create(@Valid @RequestBody NetworkElementCreateDTO dto) {
 
-        NetworkElementEntity created = networkElementService.create(dto);
+        NetworkElementResponseDTO created = networkElementService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping
-    public ResponseEntity<List<NetworkElementEntity>> getAll(){
+    public ResponseEntity<List<NetworkElementResponseDTO>> getAll() {
         return ResponseEntity.ok(networkElementService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<NetworkElementEntity> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(networkElementService.getById(id));
+    public ResponseEntity<NetworkElementResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(networkElementService.getByElementId(id));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<NetworkElementEntity> update(@PathVariable Long id, @Valid @RequestBody NetworkElementCreateDTO dto){
+    public ResponseEntity<NetworkElementResponseDTO> update(@PathVariable Long id, @Valid @RequestBody NetworkElementCreateDTO dto) {
 
         return ResponseEntity.ok(networkElementService.update(id, dto));
     }
 
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<NetworkElementEntity> deactivate(@PathVariable Long id) {
+    public ResponseEntity<NetworkElementResponseDTO> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(networkElementService.deactivate(id));
     }
 
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<NetworkElementEntity> activate(@PathVariable Long id) {
+    public ResponseEntity<NetworkElementResponseDTO> activate(@PathVariable Long id) {
         return ResponseEntity.ok(networkElementService.activate(id));
     }
 

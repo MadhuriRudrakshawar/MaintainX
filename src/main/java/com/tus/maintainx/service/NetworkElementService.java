@@ -1,6 +1,7 @@
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
+import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ public class NetworkElementService {
 
     private final NetworkElementRepository networkElementRepository;
 
-    public NetworkElementEntity create(NetworkElementCreateDTO dto){
+    public NetworkElementResponseDTO create(NetworkElementCreateDTO dto) {
 
         NetworkElementEntity e = new NetworkElementEntity();
         e.setElementCode(dto.getElementCode().trim());
@@ -25,15 +26,24 @@ public class NetworkElementService {
         e.setRegion(dto.getRegion().trim());
         e.setStatus(dto.getStatus());
 
-        return networkElementRepository.save(e);
+        NetworkElementEntity networkElementEntity = networkElementRepository.save(e);
+
+        return toDto(networkElementEntity);
 
     }
 
-    public List<NetworkElementEntity> getAll(){
-        return networkElementRepository.findAll();
+    private NetworkElementResponseDTO toDto(NetworkElementEntity networkElementEntity) {
+        return new NetworkElementResponseDTO(
+                networkElementEntity.getId(), networkElementEntity.getElementCode(),
+                networkElementEntity.getName(), networkElementEntity.getElementType(),
+                networkElementEntity.getRegion(), networkElementEntity.getStatus());
     }
 
-    public NetworkElementEntity getById(Long id){
+    public List<NetworkElementResponseDTO> getAll() {
+        return networkElementRepository.findAll().stream().map(this::toDto).toList();
+    }
+
+    private NetworkElementEntity getById(Long id) {
         return networkElementRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -42,7 +52,7 @@ public class NetworkElementService {
 
     }
 
-    public NetworkElementEntity update(Long id, NetworkElementCreateDTO dto){
+    public NetworkElementResponseDTO update(Long id, NetworkElementCreateDTO dto) {
 
         NetworkElementEntity existing = getById(id);
 
@@ -51,25 +61,25 @@ public class NetworkElementService {
         existing.setElementType(dto.getElementType().trim());
         existing.setRegion(dto.getRegion().trim());
         existing.setStatus(dto.getStatus());
-        return networkElementRepository.save(existing);
+        return toDto(networkElementRepository.save(existing));
 
     }
 
-    public NetworkElementEntity deactivate(Long id){
+    public NetworkElementResponseDTO deactivate(Long id) {
         NetworkElementEntity existing = getById(id);
 
         existing.setStatus("DEACTIVE");
 
-        return networkElementRepository.save(existing);
+        return toDto(networkElementRepository.save(existing));
 
     }
 
-    public NetworkElementEntity activate(Long id){
+    public NetworkElementResponseDTO activate(Long id) {
         NetworkElementEntity existing = getById(id);
 
         existing.setStatus("ACTIVE");
 
-        return networkElementRepository.save(existing);
+        return toDto(networkElementRepository.save(existing));
 
     }
 
@@ -83,4 +93,7 @@ public class NetworkElementService {
         networkElementRepository.deleteById(id);
     }
 
+    public NetworkElementResponseDTO getByElementId(Long id) {
+        return toDto(getById(id));
+    }
 }
