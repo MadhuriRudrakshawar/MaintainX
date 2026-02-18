@@ -7,6 +7,8 @@ import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
+import com.tus.maintainx.exception.BadRequestException;
+import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
@@ -30,14 +32,14 @@ public class MaintenanceWindowService {
     public MaintenanceWindowResponseDTO create(@Valid MaintenanceWindowCreateRequestDTO dto) {
 
         UserEntity currentUser = userRepository.findById(dto.getRequestedById())
-                .orElseThrow(() -> new RuntimeException("User not found: " + dto.getRequestedById()));
+                .orElseThrow(() -> new NotFoundException("User not found: " + dto.getRequestedById()));
 
 
         List<NetworkElementEntity> elements =
                 networkElementRepository.findAllById(dto.getNetworkElementIds());
 
         if (elements.size() != dto.getNetworkElementIds().size()) {
-            throw new RuntimeException("Some Network Element IDs are invalid");
+            throw new BadRequestException("Some Network Element IDs are invalid");
         }
 
         MaintenanceWindowEntity e = new MaintenanceWindowEntity();
@@ -66,7 +68,7 @@ public class MaintenanceWindowService {
 
     public MaintenanceWindowResponseDTO getById(Long id) {
         MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Maintenance Window not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Maintenance Window not found: " + id));
         return toResponse(e);
     }
 
@@ -75,14 +77,14 @@ public class MaintenanceWindowService {
 
 
         MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Maintenance Window not found: " + id));
+                .orElseThrow(() -> new NotFoundException("Maintenance Window not found: " + id));
 
 
         List<NetworkElementEntity> elements =
                 networkElementRepository.findAllById(dto.getNetworkElementIds());
 
         if (elements.size() != dto.getNetworkElementIds().size()) {
-            throw new RuntimeException("Some Network Element IDs are invalid");
+            throw new BadRequestException("Some Network Element IDs are invalid");
         }
 
         e.setTitle(dto.getTitle());
@@ -117,7 +119,7 @@ public class MaintenanceWindowService {
     @Transactional
     public void delete(Long id) {
         if (!maintenanceWindowRepository.existsById(id)) {
-            throw new RuntimeException("Maintenance Window not found: " + id);
+            throw new NotFoundException("Maintenance Window not found: " + id);
         }
         maintenanceWindowRepository.deleteById(id);
     }
