@@ -30,4 +30,6 @@ public class MaintenanceWindowCreateRequestDTO {
 
     @NotEmpty
     private List<Long> networkElementIds;
+
+    private Long requestedById;
 }

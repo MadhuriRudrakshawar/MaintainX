@@ -1,11 +1,19 @@
 package com.tus.maintainx.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Set;
 
+@Entity
+@Table(name = "maintenance_windows")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MaintenanceWindowEntity {
 
 
@@ -28,8 +36,8 @@ public class MaintenanceWindowEntity {
     @Column(nullable = false, length = 25)
     private String windowStatus;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "requested_by", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "requested_by")
     private UserEntity requestedBy;
 
     @ManyToMany
@@ -38,7 +46,6 @@ public class MaintenanceWindowEntity {
             joinColumns = @JoinColumn(name = "maintenance_window_id"),
             inverseJoinColumns = @JoinColumn(name = "network_element_id")
     )
-    @Builder.Default
     private Set<NetworkElementEntity> networkElements = new HashSet<>();
 
 
