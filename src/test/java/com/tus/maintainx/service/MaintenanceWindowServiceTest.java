@@ -99,6 +99,48 @@ class MaintenanceWindowServiceTest {
     }
 
     @Test
+    void createMWOverlapTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
+        dto.setTitle("Patch");
+        dto.setDescription("Planned");
+        dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
+        dto.setRequestedById(1L);
+        dto.setNetworkElementIds(List.of(10L, 11L));
+
+        UserEntity user = new UserEntity();
+        user.setId(1L);
+        user.setUsername("engineer1");
+        when(userRepo.findById(1L)).thenReturn(Optional.of(user));
+
+        NetworkElementEntity e1 = new NetworkElementEntity();
+        e1.setId(10L);
+        e1.setName("NE1");
+
+        NetworkElementEntity e2 = new NetworkElementEntity();
+        e2.setId(11L);
+        e2.setName("NE2");
+
+        when(neRepo.findAllById(List.of(10L, 11L))).thenReturn(List.of(e1, e2));
+
+        // no overlap for 10, overlap for 11
+        when(mwRepo.existsOverlappingMWindow(eq(10L), any(), any())).thenReturn(false);
+        when(mwRepo.existsOverlappingMWindow(eq(11L), any(), any())).thenReturn(true);
+
+        Exception ex = assertThrows(Exception.class, () -> service.create(dto));
+        assertTrue(ex.getMessage().contains("NE2"));
+
+        verify(mwRepo, never()).save(any(MaintenanceWindowEntity.class));
+    }
+
+
+    @Test
     void getAllMWTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
