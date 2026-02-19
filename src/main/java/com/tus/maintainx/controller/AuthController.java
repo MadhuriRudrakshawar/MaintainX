@@ -32,13 +32,13 @@ public class AuthController {
 
         if (user == null || !user.getPassword().equals(password)) {
             return ResponseEntity.status(401)
-                    .body(new LoginResponse(username, null, "Login denied"));
+                    .body(new LoginResponse(null, username, null, "Login denied"));
         }
 
         session.setAttribute(S_USER, user.getUsername());
         session.setAttribute(S_ROLE, user.getRole());
 
-        return ResponseEntity.ok(new LoginResponse(user.getUsername(), user.getRole(), "Login Successful!!!"));
+        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), user.getRole(), "Login Successful!!!"));
 
     }
 
@@ -49,7 +49,7 @@ public class AuthController {
         String role = (String) session.getAttribute(S_ROLE);
 
         session.invalidate();
-        return ResponseEntity.ok(new LoginResponse(username, role, "Logged out"));
+        return ResponseEntity.ok(new LoginResponse(null, username, role, "Logged out"));
     }
 
 }

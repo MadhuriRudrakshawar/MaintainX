@@ -177,6 +177,7 @@
                                 <label class="form-label small" for="mwTitle">Title</label>
                                 <input class="form-control form-control-sm" id="mwTitle"
                                        placeholder="E.g. Core router patching">
+                                <input id="mwId" type="hidden" value="">
                             </div>
 
                             <div class="mb-2">
@@ -195,8 +196,6 @@
                                 <label class="form-label small" for="mwEnd">End Time</label>
                                 <input class="form-control form-control-sm" id="mwEnd" type="datetime-local">
                             </div>
-
-
 
                             <div class="d-flex justify-content-end gap-2 mt-3">
                                 <button class="btn btn-outline-secondary btn-sm"
@@ -223,23 +222,24 @@
                     <th>Start</th>
                     <th>End</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th style="min-width: 170px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
-
     </div>
 
-<!-- JS -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
-<!-- Bootstrap bundle is needed for collapse to work -->
-<script crossorigin="anonymous"
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
-<script src="script.js"></script>
+    <!-- Bootstrap bundle is needed for collapse to work -->
+    <script crossorigin="anonymous"
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="script.js"></script>
+</div>
 </body>
 </html>
