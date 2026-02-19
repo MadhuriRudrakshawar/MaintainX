@@ -61,7 +61,7 @@ class MaintenanceWindowControllerTest {
         mockMvc.perform(post("/api/v1/maintenance-windows")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Core router patching"));
 
 
