@@ -62,8 +62,16 @@ public class MaintenanceWindowService {
             );
 
             if (overlap) {
+
+                String name = "Unknown";
+                for (NetworkElementEntity ne : elements) {
+                    if (ne.getId().equals(elementId)) {
+                        name = ne.getName();
+                    }
+                }
+
                 throw new OverlapException(
-                        "Overlap detected: maintenance window already exists for elementId=" + elementId
+                        "Overlap detected: maintenance window already exists for element '" + name + "'"
                 );
             }
         }
@@ -71,6 +79,7 @@ public class MaintenanceWindowService {
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         return toResponse(saved);
     }
+
 
     public List<MaintenanceWindowResponseDTO> getAll() {
         List<MaintenanceWindowEntity> list = maintenanceWindowRepository.findAll();
