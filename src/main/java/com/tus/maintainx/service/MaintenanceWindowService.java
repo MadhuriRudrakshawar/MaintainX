@@ -9,6 +9,7 @@ import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.exception.BadRequestException;
 import com.tus.maintainx.exception.NotFoundException;
+import com.tus.maintainx.exception.OverlapException;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
@@ -51,6 +52,21 @@ public class MaintenanceWindowService {
         e.setRequestedBy(currentUser);
         e.getNetworkElements().clear();
         e.getNetworkElements().addAll(elements);
+
+
+        for (Long elementId : dto.getNetworkElementIds()) {
+            boolean overlap = maintenanceWindowRepository.existsOverlappingMWindow(
+                    elementId,
+                    dto.getStartTime(),
+                    dto.getEndTime()
+            );
+
+            if (overlap) {
+                throw new OverlapException(
+                        "Overlap detected: maintenance window already exists for elementId=" + elementId
+                );
+            }
+        }
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         return toResponse(saved);

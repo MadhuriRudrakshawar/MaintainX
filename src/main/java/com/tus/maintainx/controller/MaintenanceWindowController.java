@@ -6,6 +6,7 @@ import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +20,10 @@ public class MaintenanceWindowController {
     private final MaintenanceWindowService service;
 
     @PostMapping
-    public ResponseEntity<MaintenanceWindowResponseDTO> create(
-            @Valid @RequestBody MaintenanceWindowCreateRequestDTO dto) {
-
+    public ResponseEntity<MaintenanceWindowResponseDTO> create(@RequestBody MaintenanceWindowCreateRequestDTO dto) {
         MaintenanceWindowResponseDTO created = service.create(dto);
-        return ResponseEntity.ok(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+
     }
 
     @GetMapping("/{id}")
