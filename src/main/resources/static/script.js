@@ -1,0 +1,571 @@
+$(function () {
+    const API = "/api/v1/network-elements";
+    const MW_API = "/api/v1/maintenance-windows";
+    const mwCache = new Map();
+
+    $.ajaxSetup({xhrFields: {withCredentials: true}});
+
+    // ===================== Cache jQuery selectors (fix Sonar “Duplicated jQuery selector”) =====================
+    const $loginView = $("#loginView");
+    const $homeView = $("#homeView");
+
+    const $username = $("#username");
+    const $password = $("#password");
+    const $loginBtn = $("#loginBtn");
+    const $logoutBtn = $("#logoutBtn");
+
+    const $adminPage = $("#adminPage");
+    const $approverPage = $("#approverPage");
+    const $engineerPage = $("#engineerPage");
+    const $rolePages = $adminPage.add($approverPage).add($engineerPage);
+
+    const $addElementPanel = $("#addElementPanel");
+    const $saveElementBtn = $("#saveElementBtn");
+
+    const $neCode = $("#neCode");
+    const $neName = $("#neName");
+    const $neType = $("#neType");
+    const $neRegion = $("#neRegion");
+    const $statusActive = $("#statusActive");
+    const $statusDeactive = $("#statusDeactive");
+
+    const $neTableEl = $("#neTable");
+    const $mwTableEl = $("#mwTable");
+
+    const $addWindowPanel = $("#addWindowPanel");
+    const $saveWindowBtn = $("#saveWindowBtn");
+
+    const $mwId = $("#mwId");
+    const $mwTitle = $("#mwTitle");
+    const $mwStart = $("#mwStart");
+    const $mwEnd = $("#mwEnd");
+    const $mwElements = $("#mwElements");
+
+    // ===================== DataTables =====================
+    const table = $neTableEl.DataTable({
+        pageLength: 5,
+        lengthChange: false,
+        rowId: "id",
+        columnDefs: [{orderable: false, targets: 5}],
+        columns: [
+            {data: "elementCode"},
+            {data: "name"},
+            {data: "elementType"},
+            {data: "region"},
+            {data: "status", render: (v) => makeStatusBadge(v)},
+            {data: null, render: () => actionsHtml()}
+        ]
+    });
+
+    const mwTable = $mwTableEl.DataTable({
+        pageLength: 5,
+        lengthChange: false,
+        rowId: "id",
+        columnDefs: [{orderable: false, targets: 5}],
+        columns: [
+            {data: "title", render: (v) => escapeHtml(v || "")},
+            {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
+            {data: "startTime", render: (v) => escapeHtml(formatDateTime(v))},
+            {data: "endTime", render: (v) => escapeHtml(formatDateTime(v))},
+            {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+            {
+                data: "id",
+                render: (id) => `
+          <button class="btn btn-outline-primary btn-sm js-mw-edit" data-id="${id}">Edit</button>
+          <button class="btn btn-outline-danger btn-sm js-mw-delete" data-id="${id}">Delete</button>
+        `
+            }
+        ]
+    });
+
+    // ===================== Initial Routing =====================
+    const savedRole = sessionStorage.getItem("role");
+    const savedUserId = sessionStorage.getItem("userId");
+
+    if (savedRole && savedUserId) {
+        showHome();
+        routeByRole(savedRole);
+    } else {
+        sessionStorage.clear();
+        showLogin();
+    }
+
+    // ===================== Auth Events =====================
+    $loginBtn.on("click", login);
+
+    $password.on("keydown", function (e) {
+        if (e.key === "Enter") login();
+    });
+
+    $logoutBtn.on("click", logout);
+
+    // ===================== Maintenance Window Events =====================
+    $saveWindowBtn.on("click", createMaintenanceWindow);
+
+    // instead of $("#mwStart, #mwEnd") (Sonar duplicate selector warning), reuse cached objects
+    $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
+
+    $mwTableEl.on("click", ".js-mw-delete", function () {
+        const id = $(this).data("id");
+        deleteMaintenanceWindow(id);
+    });
+
+    $mwTableEl.on("click", ".js-mw-edit", function () {
+        const id = Number($(this).data("id"));
+        const row = mwCache.get(id);
+        if (!row) {
+            alert("Unable to load maintenance window for editing");
+            return;
+        }
+        fillMwForm(row);
+        $addWindowPanel.collapse("show");
+    });
+
+    // ===================== Network Element Events =====================
+    $saveElementBtn.on("click", function () {
+        const payload = readForm();
+        if (!payload) return;
+
+        const editId = $(this).data("editId");
+
+        if (editId) {
+            $.ajax({
+                url: `${API}/${editId}`,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done((updated) => {
+                    table.row("#" + updated.id).data(updated).draw(false);
+                    clearForm();
+                    $saveElementBtn.removeData("editId");
+                    $addElementPanel.collapse("hide");
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Update failed");
+                    console.log(xhr.responseText);
+                });
+        } else {
+            $.ajax({
+                url: API,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done((created) => {
+                    table.row.add(created).draw(false);
+                    clearForm();
+                    $addElementPanel.collapse("hide");
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Create failed");
+                    console.log(xhr.responseText);
+                });
+        }
+    });
+
+    $neTableEl.on("click", ".js-edit", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        fillForm(data);
+        $saveElementBtn.data("editId", data.id);
+        $addElementPanel.collapse("show");
+    });
+
+    $neTableEl.on("click", ".js-toggle", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        const isActive = String(data.status).toUpperCase() === "ACTIVE";
+        const endpoint = isActive ? "deactivate" : "activate";
+
+        $.ajax({
+            url: `${API}/${data.id}/${endpoint}`,
+            method: "PATCH"
+        })
+            .done((updated) => {
+                table.row("#" + updated.id).data(updated).draw(false);
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Status update failed");
+                console.log(xhr.responseText);
+            });
+    });
+
+    $neTableEl.on("click", ".js-delete", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        if (!confirm(`Delete ${data.elementCode}?`)) return;
+
+        $.ajax({
+            url: `${API}/${data.id}`,
+            method: "DELETE"
+        })
+            .done(() => {
+                row.remove().draw(false);
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Delete failed");
+                console.log(xhr.responseText);
+            });
+    });
+
+    // ===================== Functions =====================
+    function login() {
+        const username = $username.val().trim();
+        const password = $password.val();
+
+        if (!username || !password) {
+            alert("Enter username and password");
+            return;
+        }
+
+        $.ajax({
+            url: "/api/v1/auth/login",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({username, password}),
+            success: function (res) {
+                sessionStorage.setItem("role", res.role || "");
+                sessionStorage.setItem("username", res.username || username);
+
+                const loginUserId = res && (res.id ?? res.userId ?? res.userID ?? res.user_id);
+                if (loginUserId !== null && loginUserId !== undefined && String(loginUserId).trim() !== "") {
+                    sessionStorage.setItem("userId", String(loginUserId));
+                } else {
+                    sessionStorage.removeItem("userId");
+                }
+
+                showHome();
+                routeByRole(res.role);
+
+                // clear login inputs
+                $username.val("");
+                $password.val("");
+            },
+            error: function (xhr) {
+                alert("Login failed: " + (xhr.responseText || xhr.status));
+                console.log(xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    function loadAll() {
+        $.get(API)
+            .done((rows) => {
+                table.clear().rows.add(rows).draw();
+            })
+            .fail((xhr) => {
+                alert("Failed to load network elements");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        $username.val("");
+        $password.val("");
+        hideAllRolePages();
+        showLogin();
+    }
+
+    function showHome() {
+        $loginView.addClass("d-none");
+        $homeView.removeClass("d-none");
+    }
+
+    function showLogin() {
+        $homeView.addClass("d-none");
+        $loginView.removeClass("d-none");
+    }
+
+    function hideAllRolePages() {
+        $rolePages.addClass("d-none");
+    }
+
+    function routeByRole(role) {
+        const r = String(role || "").toUpperCase();
+        hideAllRolePages();
+
+        if (r === "ADMIN") {
+            $adminPage.removeClass("d-none");
+            loadAll();
+        } else if (r === "APPROVER") {
+            $approverPage.removeClass("d-none");
+        } else if (r === "ENGINEER") {
+            $engineerPage.removeClass("d-none");
+            applyMwDateConstraints();
+            loadNetworkElementsForMw();
+            loadMaintenanceWindows();
+        } else {
+            logout();
+        }
+    }
+
+    // ===== Network Element Helpers =====
+    function readForm() {
+        const elementCode = $neCode.val().trim();
+        const name = $neName.val().trim();
+        const elementType = $neType.val();
+        const region = $neRegion.val();
+        const status = $('input[name="neStatus"]:checked').val();
+
+        if (!elementCode || !name || !elementType || !region || !status) {
+            alert("Please fill all fields");
+            return null;
+        }
+        return {elementCode, name, elementType, region, status};
+    }
+
+    function fillForm(e) {
+        $neCode.val(e.elementCode);
+        $neName.val(e.name);
+        $neType.val(e.elementType);
+        $neRegion.val(e.region);
+
+        const s = String(e.status).toUpperCase();
+        if (s === "DEACTIVE") $statusDeactive.prop("checked", true);
+        else $statusActive.prop("checked", true);
+    }
+
+    function clearForm() {
+        $neCode.val("");
+        $neName.val("");
+        $neType.val("");
+        $neRegion.val("");
+        $statusActive.prop("checked", true);
+    }
+
+    function makeStatusBadge(status) {
+        const s = String(status || "").toUpperCase();
+        return s === "ACTIVE"
+            ? '<span class="badge text-bg-success">ACTIVE</span>'
+            : '<span class="badge text-bg-danger">DEACTIVE</span>';
+    }
+
+    function actionsHtml() {
+        return `
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-primary js-edit">Edit</button>
+        <button type="button" class="btn btn-outline-warning js-toggle">Active/Deactive</button>
+        <button type="button" class="btn btn-outline-danger js-delete">Delete</button>
+      </div>
+    `;
+    }
+
+    // ===== MW Helpers =====
+    function loadNetworkElementsForMw() {
+        $.get(API)
+            .done((rows) => {
+                $mwElements.empty();
+                rows.forEach((ne) => {
+                    const code = ne.elementCode || "";
+                    const name = ne.name || "";
+                    $mwElements.append(`<option value="${ne.id}">${code} - ${name}</option>`);
+                });
+            })
+            .fail((xhr) => {
+                alert("Failed to load network elements");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function loadMaintenanceWindows() {
+        $.get(MW_API)
+            .done((rows) => {
+                mwCache.clear();
+                rows.forEach((w) => mwCache.set(Number(w.id), w));
+                mwTable.clear().rows.add(rows).draw();
+            })
+            .fail((xhr) => {
+                alert("Failed to load maintenance windows");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function createMaintenanceWindow() {
+        const payload = readMwForm();
+        if (!payload) return;
+
+        const editId = $mwId.val().trim();
+
+        if (editId) {
+            $.ajax({
+                url: `${MW_API}/${editId}`,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done(() => {
+                    clearMwForm();
+                    $addWindowPanel.collapse("hide");
+                    loadMaintenanceWindows();
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Update failed");
+                    console.log(xhr.responseText);
+                });
+        } else {
+            $.ajax({
+                url: MW_API,
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(payload)
+            })
+                .done(() => {
+                    clearMwForm();
+                    $addWindowPanel.collapse("hide");
+                    loadMaintenanceWindows();
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Create failed");
+                    console.log(xhr.responseText);
+                });
+        }
+    }
+
+    function deleteMaintenanceWindow(id) {
+        if (!confirm("Delete this maintenance window?")) return;
+
+        $.ajax({
+            url: `${MW_API}/${id}`,
+            method: "DELETE"
+        })
+            .done(() => loadMaintenanceWindows())
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Delete failed");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function readMwForm() {
+        applyMwDateConstraints();
+
+        const title = $mwTitle.val().trim();
+        const startTime = $mwStart.val();
+        const endTime = $mwEnd.val();
+
+        const startNum = document.getElementById("mwStart").valueAsNumber;
+        const endNum = document.getElementById("mwEnd").valueAsNumber;
+        const nowNum = Date.now();
+
+        const selected = $mwElements.val() || [];
+
+        const requestedByIdRaw = sessionStorage.getItem("userId");
+        const requestedById = requestedByIdRaw ? Number(requestedByIdRaw) : null;
+
+        if (!title || !startTime || !endTime) {
+            alert("Please fill Title, Start, End");
+            return null;
+        }
+
+        if (!selected.length) {
+            alert("Please select at least one Network Element");
+            return null;
+        }
+
+        if (isNaN(startNum) || isNaN(endNum)) {
+            alert("Invalid date/time format");
+            return null;
+        }
+
+        if (startNum < nowNum || endNum < nowNum) {
+            alert("Past date/time is not allowed");
+            return null;
+        }
+
+        if (endNum <= startNum) {
+            alert("End Time must be after Start Time");
+            return null;
+        }
+
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
+            return null;
+        }
+
+        return {
+            title: title,
+            description: "",
+            startTime: toSeconds(startTime),
+            endTime: toSeconds(endTime),
+            networkElementIds: selected.map((x) => Number(x)),
+            requestedById: requestedById
+        };
+    }
+
+    function clearMwForm() {
+        $mwId.val("");
+        $mwTitle.val("");
+        $mwStart.val("");
+        $mwEnd.val("");
+        $mwElements.val([]);
+        applyMwDateConstraints();
+    }
+
+    function fillMwForm(w) {
+        $mwId.val(w.id);
+        $mwTitle.val(w.title || "");
+        $mwStart.val(toDateTimeLocalValueFromServer(w.startTime));
+        $mwEnd.val(toDateTimeLocalValueFromServer(w.endTime));
+        $mwElements.val((w.networkElementIds || []).map(String));
+        applyMwDateConstraints();
+    }
+
+    function applyMwDateConstraints() {
+        const nowValue = toDateTimeLocalValue(nowLocalMinute());
+
+        $mwStart.attr("min", nowValue);
+
+        const startValue = $mwStart.val();
+        const endMin = (startValue && startValue > nowValue) ? startValue : nowValue;
+        $mwEnd.attr("min", endMin);
+    }
+
+    function nowLocalMinute() {
+        const d = new Date();
+        d.setSeconds(0, 0);
+        return d;
+    }
+
+    function toDateTimeLocalValue(d) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function toSeconds(dtLocal) {
+        if (!dtLocal) return dtLocal;
+        return dtLocal.length === 16 ? (dtLocal + ":00") : dtLocal;
+    }
+
+    function toDateTimeLocalValueFromServer(val) {
+        if (!val) return "";
+        return String(val).substring(0, 16);
+    }
+
+    function formatDateTime(val) {
+        if (!val) return "";
+        return String(val).replace("T", " ").substring(0, 16);
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function errMsg(xhr) {
+        try {
+            const j = JSON.parse(xhr.responseText);
+            return j.message;
+        } catch (e) {
+            return null;
+        }
+    }
+});

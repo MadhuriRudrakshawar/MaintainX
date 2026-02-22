@@ -1,0 +1,54 @@
+package com.tus.maintainx.controller;
+
+import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
+import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
+import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
+import com.tus.maintainx.service.MaintenanceWindowService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/maintenance-windows")
+@RequiredArgsConstructor
+public class MaintenanceWindowController {
+
+    private final MaintenanceWindowService service;
+
+    @PostMapping
+    public ResponseEntity<MaintenanceWindowResponseDTO> create(@RequestBody MaintenanceWindowCreateRequestDTO dto) {
+        MaintenanceWindowResponseDTO created = service.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<MaintenanceWindowResponseDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
+    }
+
+
+    @GetMapping
+    public ResponseEntity<List<MaintenanceWindowResponseDTO>> getAll() {
+        return ResponseEntity.ok(service.getAll());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<MaintenanceWindowResponseDTO> update(
+            @PathVariable Long id,
+            @Valid @RequestBody MaintenanceWindowUpdateRequestDTO dto) {
+
+        return ResponseEntity.ok(service.update(id, dto));
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}

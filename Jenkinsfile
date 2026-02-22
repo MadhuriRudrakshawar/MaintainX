@@ -1,6 +1,14 @@
 pipeline {
   agent any
 
+options { disableConcurrentBuilds() }
+
+  environment {
+    GITHUB_TOKEN = credentials('github-token')
+    SONAR_TOKEN  = credentials('sonar-token-maintainx')
+    SONAR_PROJECT_KEY = 'maintainx'
+  }
+
   triggers {
     pollSCM('H/2 * * * *')
   }
@@ -11,17 +19,47 @@ pipeline {
 
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+      }
     }
 
-    stage('Build') {
-      steps { bat 'mvn -B clean package' }
+    stage('Build, Test & Coverage') {
+      steps {
+        powershell 'mvn -B clean verify'
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv('LocalSonar') {
+          powershell '''
+            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY"
+          '''
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 15, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
     }
   }
 
   post {
     always {
       junit 'target/surefire-reports/*.xml'
+
+      publishHTML(target: [
+        reportDir: 'target/site/jacoco',
+        reportFiles: 'index.html',
+        reportName: 'JaCoCo Code Coverage',
+        keepAll: true,
+        alwaysLinkToLastBuild: true
+      ])
     }
   }
 }
