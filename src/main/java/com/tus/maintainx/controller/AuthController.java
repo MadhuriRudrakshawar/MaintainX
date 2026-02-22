@@ -8,6 +8,8 @@ import com.tus.maintainx.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +22,11 @@ public class AuthController {
 
     private static final String S_USER = "LOGIN_USER";
     private static final String S_ROLE = "LOGIN_ROLE";
+
+
     private final UserRepository userRepo;
+    private final AuthenticationManager authManager;
+
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpSession session) {
@@ -28,18 +34,19 @@ public class AuthController {
         String username = (req.getUsername() == null) ? "" : req.getUsername().trim();
         String password = (req.getPassword() == null) ? "" : req.getPassword();
 
-        UserEntity user = userRepo.findByUsername(username);
+        try {
+            authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
-        if (user == null || !user.getPassword().equals(password)) {
+            UserEntity user = userRepo.findByUsername(username);
+
+            session.setAttribute(S_USER, user.getUsername());
+            session.setAttribute(S_ROLE, user.getRole());
+
+            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), user.getRole(), "Login Successful!!!"));
+        } catch (Exception ex) {
             return ResponseEntity.status(401)
                     .body(new LoginResponse(null, username, null, "Login denied"));
         }
-
-        session.setAttribute(S_USER, user.getUsername());
-        session.setAttribute(S_ROLE, user.getRole());
-
-        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), user.getRole(), "Login Successful!!!"));
-
     }
 
     @PostMapping("/logout")
