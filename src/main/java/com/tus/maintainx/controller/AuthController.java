@@ -8,8 +8,12 @@ import com.tus.maintainx.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,9 +39,20 @@ public class AuthController {
         String password = (req.getPassword() == null) ? "" : req.getPassword();
 
         try {
-            authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+            Authentication authentication = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
 
             UserEntity user = userRepo.findByUsername(username);
+            if (user == null) {
+                return ResponseEntity.status(401)
+                        .body(new LoginResponse(null, username, null, "Login denied"));
+            }
+
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
 
             session.setAttribute(S_USER, user.getUsername());
             session.setAttribute(S_ROLE, user.getRole());
