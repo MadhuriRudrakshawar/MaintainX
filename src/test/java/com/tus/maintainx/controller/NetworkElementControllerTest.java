@@ -1,11 +1,13 @@
 package com.tus.maintainx.controller;
 
+import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.service.NetworkElementService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(NetworkElementController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class NetworkElementControllerTest {
 
     @Autowired
@@ -29,6 +32,9 @@ class NetworkElementControllerTest {
 
     @MockitoBean
     NetworkElementService service;
+
+    @MockitoBean
+    JwtUtils jwtUtils;
 
     @Test
     void createCheckTest() throws Exception {

@@ -1,13 +1,16 @@
 package com.tus.maintainx.controller;
 
 
+import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.LoginRequest;
 import com.tus.maintainx.dto.LoginResponse;
 import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,38 +21,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String S_USER = "LOGIN_USER";
-    private static final String S_ROLE = "LOGIN_ROLE";
+    private static final String LOGIN_DENIED = "Login denied";
+
     private final UserRepository userRepo;
+    private final AuthenticationManager authManager;
+    private final JwtUtils jwtUtils;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpSession session) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
 
         String username = (req.getUsername() == null) ? "" : req.getUsername().trim();
         String password = (req.getPassword() == null) ? "" : req.getPassword();
 
-        UserEntity user = userRepo.findByUsername(username);
+        try {
+            Authentication authentication = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
 
-        if (user == null || !user.getPassword().equals(password)) {
+            if (!authentication.isAuthenticated()) {
+                return ResponseEntity.status(401)
+                        .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
+            }
+
+            UserEntity user = userRepo.findByUsername(username);
+            if (user == null) {
+                return ResponseEntity.status(401)
+                        .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
+            }
+
+            String role = (user.getRole() == null) ? "USER" : user.getRole().trim().toUpperCase();
+            String token = jwtUtils.generateToken(user.getUsername(), role);
+
+            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), role, token, "Login Successful!!!"));
+        } catch (Exception ex) {
             return ResponseEntity.status(401)
-                    .body(new LoginResponse(null, username, null, "Login denied"));
+                    .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
         }
-
-        session.setAttribute(S_USER, user.getUsername());
-        session.setAttribute(S_ROLE, user.getRole());
-
-        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), user.getRole(), "Login Successful!!!"));
-
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<LoginResponse> logout(HttpSession session) {
-
-        String username = (String) session.getAttribute(S_USER);
-        String role = (String) session.getAttribute(S_ROLE);
-
-        session.invalidate();
-        return ResponseEntity.ok(new LoginResponse(null, username, role, "Logged out"));
+    public ResponseEntity<LoginResponse> logout() {
+        return ResponseEntity.ok(new LoginResponse(null, null, null, null, "Logged out"));
     }
-
 }

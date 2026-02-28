@@ -12,7 +12,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,6 +45,8 @@ class NetworkElementApiIT {
         );
 
         String createResp = mvc.perform(post("/api/v1/network-elements")
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -52,24 +56,32 @@ class NetworkElementApiIT {
                 .getResponse()
                 .getContentAsString();
 
-        Long id = objectMapper.readTree(createResp).get("id").asLong();
+        long id = objectMapper.readTree(createResp).get("id").asLong();
 
-        mvc.perform(get("/api/v1/network-elements"))
+        mvc.perform(get("/api/v1/network-elements")
+                        .with(user("it-user").roles("USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
 
-        mvc.perform(patch("/api/v1/network-elements/" + id + "/deactivate"))
+        mvc.perform(patch("/api/v1/network-elements/" + id + "/deactivate")
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DEACTIVE"));
 
-        mvc.perform(patch("/api/v1/network-elements/" + id + "/activate"))
+        mvc.perform(patch("/api/v1/network-elements/" + id + "/activate")
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        mvc.perform(delete("/api/v1/network-elements/" + id))
+        mvc.perform(delete("/api/v1/network-elements/" + id)
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
 
-        mvc.perform(get("/api/v1/network-elements/" + id))
+        mvc.perform(get("/api/v1/network-elements/" + id)
+                        .with(user("it-user").roles("USER")))
                 .andExpect(status().isNotFound());
     }
 }
