@@ -19,6 +19,8 @@ public class MaintenanceWindowResponseDTO {
     private String requestedByUsername;
     private String rejectionReason;
 
+    private String decidedBy;
+    private LocalDateTime decidedAt;
 
     private List<Long> networkElementIds;
     private List<String> networkElementNames;
