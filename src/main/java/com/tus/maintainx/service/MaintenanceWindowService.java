@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -135,8 +136,11 @@ public class MaintenanceWindowService {
 
 
     private MaintenanceWindowResponseDTO toResponse(MaintenanceWindowEntity e) {
-        List<Long> ids = e.getNetworkElements().stream().map(NetworkElementEntity::getId).toList();
-        List<String> names = e.getNetworkElements().stream().map(NetworkElementEntity::getName).toList();
+        List<NetworkElementEntity> sortedElements = e.getNetworkElements().stream()
+                .sorted(Comparator.comparing(NetworkElementEntity::getId))
+                .toList();
+        List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
+        List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
 
         return MaintenanceWindowResponseDTO.builder()
                 .id(e.getId())

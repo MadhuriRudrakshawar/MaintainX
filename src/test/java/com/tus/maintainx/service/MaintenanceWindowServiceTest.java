@@ -9,7 +9,11 @@ import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -22,6 +26,19 @@ import static org.mockito.Mockito.*;
 
 class MaintenanceWindowServiceTest {
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void mockAuthenticatedUser(String username) {
+        SecurityContext ctx = mock(SecurityContext.class);
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn(username);
+        when(ctx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(ctx);
+    }
+
     @Test
     void createMntnceWindowTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
@@ -30,30 +47,37 @@ class MaintenanceWindowServiceTest {
 
         MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
 
+        mockAuthenticatedUser("engineer1");
+
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
         dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
         dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
-        dto.setRequestedById(1L);
-        dto.setNetworkElementIds(List.of(10L, 11L));
+        dto.setNetworkElementIds(List.of(10L, 11L)); // used by service
 
         UserEntity user = new UserEntity();
         user.setId(1L);
         user.setUsername("engineer1");
-        when(userRepo.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepo.findByUsername("engineer1")).thenReturn(user);
 
         NetworkElementEntity e1 = new NetworkElementEntity();
         e1.setId(10L);
         e1.setName("NE1");
+
         NetworkElementEntity e2 = new NetworkElementEntity();
         e2.setId(11L);
         e2.setName("NE2");
+
         when(neRepo.findAllById(List.of(10L, 11L))).thenReturn(List.of(e1, e2));
+
+        when(mwRepo.existsOverlappingMWindow(eq(10L), any(), any())).thenReturn(false);
+        when(mwRepo.existsOverlappingMWindow(eq(11L), any(), any())).thenReturn(false);
 
         when(mwRepo.save(any(MaintenanceWindowEntity.class))).thenAnswer(inv -> {
             MaintenanceWindowEntity saved = inv.getArgument(0);
             saved.setId(99L);
+            if (saved.getNetworkElements() == null) saved.setNetworkElements(new HashSet<>());
             return saved;
         });
 
@@ -63,9 +87,15 @@ class MaintenanceWindowServiceTest {
         assertEquals("Patch", resp.getTitle());
         assertEquals("PENDING", resp.getWindowStatus());
         assertEquals("engineer1", resp.getRequestedByUsername());
+        assertEquals(List.of(10L, 11L), resp.getNetworkElementIds());
 
+        verify(userRepo).findByUsername("engineer1");
+        verify(neRepo).findAllById(List.of(10L, 11L));
+        verify(mwRepo).existsOverlappingMWindow(10L, dto.getStartTime(), dto.getEndTime());
+        verify(mwRepo).existsOverlappingMWindow(11L, dto.getStartTime(), dto.getEndTime());
         verify(mwRepo).save(any(MaintenanceWindowEntity.class));
     }
+
 
     @Test
     void createMntncWindowInvalidNETest() {
@@ -74,18 +104,18 @@ class MaintenanceWindowServiceTest {
         UserRepository userRepo = mock(UserRepository.class);
 
         MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
         dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
-        dto.setRequestedById(1L);
         dto.setNetworkElementIds(List.of(10L, 11L)); // expects 2
 
         UserEntity user = new UserEntity();
         user.setId(1L);
         user.setUsername("engineer1");
-        when(userRepo.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepo.findByUsername("engineer1")).thenReturn(user);
 
         NetworkElementEntity e1 = new NetworkElementEntity();
         e1.setId(10L);
@@ -105,19 +135,19 @@ class MaintenanceWindowServiceTest {
         UserRepository userRepo = mock(UserRepository.class);
 
         MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
         dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
         dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
-        dto.setRequestedById(1L);
         dto.setNetworkElementIds(List.of(10L, 11L));
 
         UserEntity user = new UserEntity();
         user.setId(1L);
         user.setUsername("engineer1");
-        when(userRepo.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepo.findByUsername("engineer1")).thenReturn(user);
 
         NetworkElementEntity e1 = new NetworkElementEntity();
         e1.setId(10L);
