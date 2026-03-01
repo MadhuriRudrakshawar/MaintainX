@@ -92,6 +92,94 @@ class NetworkElementServiceTest {
     }
 
     @Test
+    void getAllTest() {
+        NetworkElementEntity e1 = new NetworkElementEntity(
+                1L, "NE-001", "Core Router", "ROUTER", "Dublin", "ACTIVE"
+        );
+        NetworkElementEntity e2 = new NetworkElementEntity(
+                2L, "NE-002", "Edge Switch", "SWITCH", "Cork", "DEACTIVE"
+        );
+
+        when(repo.findAll()).thenReturn(java.util.List.of(e1, e2));
+
+        var result = service.getAll();
+
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals("NE-001", result.get(0).getElementCode());
+        assertEquals("Cork", result.get(1).getRegion());
+        verify(repo).findAll();
+    }
+
+    @Test
+    void getByElementId_NotFound() {
+        when(repo.findById(999L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.getByElementId(999L));
+
+        assertEquals(404, ex.getStatusCode().value());
+    }
+
+    @Test
+    void updateHappyPathTest() {
+        NetworkElementEntity existing = new NetworkElementEntity(
+                1L, "NE-OLD", "Old", "OLDTYPE", "OldRegion", "DEACTIVE"
+        );
+
+        NetworkElementCreateDTO updateDto = new NetworkElementCreateDTO(
+                "  NE-001  ", "  Core Router  ", "  ROUTER  ", "  Dublin  ", "ACTIVE"
+        );
+
+        when(repo.findById(1L)).thenReturn(Optional.of(existing));
+        when(repo.save(any(NetworkElementEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        NetworkElementResponseDTO updated = service.update(1L, updateDto);
+
+        assertEquals(1L, updated.getId());
+        assertEquals("NE-001", updated.getElementCode());
+        assertEquals("Core Router", updated.getName());
+        assertEquals("ROUTER", updated.getElementType());
+        assertEquals("Dublin", updated.getRegion());
+        assertEquals("ACTIVE", updated.getStatus());
+        verify(repo).findById(1L);
+        verify(repo).save(existing);
+    }
+
+    @Test
+    void update_NotFound() {
+        when(repo.findById(123L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.update(123L, dto));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void deactivate_NotFound() {
+        when(repo.findById(123L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.deactivate(123L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void activate_NotFound() {
+        when(repo.findById(123L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.activate(123L));
+
+        assertEquals(404, ex.getStatusCode().value());
+        verify(repo, never()).save(any());
+    }
+
+    @Test
     void deleteEntityNotExistedTest() {
         when(repo.existsById(123L)).thenReturn(false);
 
@@ -110,4 +198,6 @@ class NetworkElementServiceTest {
 
         verify(repo).deleteById(5L);
     }
+
+
 }

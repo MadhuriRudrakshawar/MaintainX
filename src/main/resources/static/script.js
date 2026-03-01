@@ -1,9 +1,29 @@
 $(function () {
     const API = "/api/v1/network-elements";
     const MW_API = "/api/v1/maintenance-windows";
+    const TOKEN_KEY = "accessToken";
     const mwCache = new Map();
 
-    $.ajaxSetup({xhrFields: {withCredentials: true}});
+    $.ajaxSetup({
+        beforeSend: function (xhr) {
+            const token = sessionStorage.getItem(TOKEN_KEY);
+            if (token) {
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
+            }
+        }
+    });
+
+    $(document).ajaxError(function (_event, xhr, settings) {
+        const url = settings && settings.url ? String(settings.url) : "";
+        const authEndpoint = url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/logout");
+
+        if (xhr && (xhr.status === 401 || xhr.status === 403) && !authEndpoint) {
+            clearSessionData();
+            hideAllRolePages();
+            showLogin();
+            alert("Session expired. Please login again.");
+        }
+    });
 
     // ===================== Cache jQuery selectors (fix Sonar “Duplicated jQuery selector”) =====================
     const $loginView = $("#loginView");
@@ -79,14 +99,15 @@ $(function () {
     });
 
     // ===================== Initial Routing =====================
+    const savedToken = sessionStorage.getItem(TOKEN_KEY);
     const savedRole = sessionStorage.getItem("role");
     const savedUserId = sessionStorage.getItem("userId");
 
-    if (savedRole && savedUserId) {
+    if (savedToken && savedRole && savedUserId) {
         showHome();
         routeByRole(savedRole);
     } else {
-        sessionStorage.clear();
+        clearSessionData();
         showLogin();
     }
 
@@ -228,6 +249,14 @@ $(function () {
             contentType: "application/json",
             data: JSON.stringify({username, password}),
             success: function (res) {
+                if (!res || !res.token) {
+                    alert("Login response missing token");
+                    clearSessionData();
+                    showLogin();
+                    return;
+                }
+
+                sessionStorage.setItem(TOKEN_KEY, String(res.token));
                 sessionStorage.setItem("role", res.role || "");
                 sessionStorage.setItem("username", res.username || username);
 
@@ -246,6 +275,7 @@ $(function () {
                 $password.val("");
             },
             error: function (xhr) {
+                clearSessionData();
                 alert("Login failed: " + (xhr.responseText || xhr.status));
                 console.log(xhr.status, xhr.responseText);
             }
@@ -264,11 +294,23 @@ $(function () {
     }
 
     function logout() {
-        sessionStorage.clear();
-        $username.val("");
-        $password.val("");
-        hideAllRolePages();
-        showLogin();
+        $.ajax({
+            url: "/api/v1/auth/logout",
+            method: "POST"
+        }).always(function () {
+            clearSessionData();
+            $username.val("");
+            $password.val("");
+            hideAllRolePages();
+            showLogin();
+        });
+    }
+
+    function clearSessionData() {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem("role");
+        sessionStorage.removeItem("username");
+        sessionStorage.removeItem("userId");
     }
 
     function showHome() {

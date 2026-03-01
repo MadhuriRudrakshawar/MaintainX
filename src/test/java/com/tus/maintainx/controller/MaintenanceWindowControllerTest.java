@@ -1,11 +1,13 @@
 package com.tus.maintainx.controller;
 
+import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
 import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
 import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MaintenanceWindowController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class MaintenanceWindowControllerTest {
 
     @Autowired
@@ -29,6 +32,9 @@ class MaintenanceWindowControllerTest {
 
     @MockitoBean
     MaintenanceWindowService service;
+
+    @MockitoBean
+    JwtUtils jwtUtils;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -61,7 +67,7 @@ class MaintenanceWindowControllerTest {
         mockMvc.perform(post("/api/v1/maintenance-windows")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Core router patching"));
 
 
