@@ -36,14 +36,11 @@ public class MaintenanceWindowEntity {
     @Column(nullable = false, length = 25)
     private String windowStatus;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100)
     private String rejectionReason;
 
     @Column(nullable = false, length = 25)
     private String decidedBy;
-
-    @Column(name = "decidedAt", nullable = false)
-    private LocalDateTime decidedAt;
 
     @ManyToOne
     @JoinColumn(name = "requested_by")

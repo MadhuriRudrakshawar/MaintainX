@@ -3,6 +3,7 @@ package com.tus.maintainx.controller;
 import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
 import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
 import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
+import com.tus.maintainx.dto.RejectMaintenanceWindowRequestDTO;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -50,5 +51,18 @@ public class MaintenanceWindowController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/approve")
+    public ResponseEntity<MaintenanceWindowResponseDTO> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(service.approve(id));
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<MaintenanceWindowResponseDTO> reject(
+            @PathVariable Long id,
+            @Valid @RequestBody RejectMaintenanceWindowRequestDTO dto) {
+
+        return ResponseEntity.ok(service.reject(id, dto.getReason()));
     }
 }

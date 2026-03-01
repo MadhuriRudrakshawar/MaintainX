@@ -149,11 +149,7 @@
 
     <!-- ===================== APPROVER PAGE ===================== -->
     <div class="d-none" id="approverPage">
-        <div class="alert alert-info mb-0">Approver Dashboard</div>
-
-        <div class="mb-3">
-            <div class="alert alert-info">Approver Dashboard - Pending Requests</div>
-        </div>
+        <div class="alert alert-info mb-3">Approver Dashboard - Pending Requests</div>
 
         <div class="container px-0">
             <table class="table table-striped table-sm" id="pendingMwTable">
@@ -172,7 +168,6 @@
             </table>
         </div>
 
-        <!-- Reject Modal -->
         <div aria-hidden="true" class="modal fade" id="rejectModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -182,9 +177,15 @@
                     </div>
                     <div class="modal-body">
                         <input id="rejectMwId" type="hidden">
-                        <label class="form-label">Reason</label>
-                        <textarea class="form-control" id="rejectReason" placeholder="Enter rejection reason..."
-                                  rows="3"></textarea>
+                        <label class="form-label" for="rejectReason">Reason</label>
+                        <select class="form-select" id="rejectReason">
+                            <option value="">Select a reason...</option>
+                            <option>Insufficient details provided</option>
+                            <option>Outside approved maintenance hours</option>
+                            <option>Risk too high / missing rollback plan</option>
+                            <option>Not aligned with change calendar</option>
+                            <option>Other</option>
+                        </select>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -193,7 +194,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- ===================== ENGINEER PAGE ===================== -->
