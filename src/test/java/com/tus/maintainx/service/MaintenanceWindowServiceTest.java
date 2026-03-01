@@ -6,6 +6,8 @@ import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
+import com.tus.maintainx.exception.BadRequestException;
+import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
@@ -305,5 +307,157 @@ class MaintenanceWindowServiceTest {
         assertTrue(ex.getMessage().contains("not found"));
 
         verify(repo, never()).deleteById(anyLong());
+    }
+
+
+    @Test
+    void approverApprovedTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        UserEntity requester = new UserEntity();
+        requester.setUsername("engineer1");
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setTitle("MW1");
+        mw.setWindowStatus("PENDING");
+        mw.setRequestedBy(requester);
+        mw.setNetworkElements(new HashSet<>());
+        mw.setRejectionReason("old reason"); // should be cleared
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        SecurityContext ctx = mock(SecurityContext.class);
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn("approver1");
+        when(ctx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(ctx);
+
+        when(mwRepo.save(any(MaintenanceWindowEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaintenanceWindowResponseDTO resp = service.approve(10L);
+
+        assertEquals("APPROVED", resp.getWindowStatus());
+        assertEquals("engineer1", resp.getRequestedByUsername());
+        assertEquals(10L, resp.getId());
+
+        assertEquals("APPROVED", mw.getWindowStatus());
+        assertNull(mw.getRejectionReason());
+        assertEquals("approver1", mw.getDecidedBy());
+
+        verify(mwRepo).save(mw);
+    }
+
+    @Test
+    void approverWhenNotPendingFailTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        UserEntity requester = new UserEntity();
+        requester.setUsername("engineer1");
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setWindowStatus("APPROVED"); // already approved
+        mw.setRequestedBy(requester);
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.approve(10L));
+        assertTrue(ex.getMessage().toLowerCase().contains("only pending"));
+
+        verify(mwRepo, never()).save(any());
+    }
+
+    @Test
+    void approverWindowNotFoundTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        when(mwRepo.findById(10L)).thenReturn(Optional.empty());
+
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> service.approve(10L));
+        assertTrue(ex.getMessage().toLowerCase().contains("not found"));
+    }
+
+    @Test
+    void rejectWindowTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        UserEntity requester = new UserEntity();
+        requester.setUsername("engineer1");
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setTitle("MW1");
+        mw.setWindowStatus("PENDING");
+        mw.setRequestedBy(requester);
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        SecurityContext ctx = mock(SecurityContext.class);
+        Authentication auth = mock(Authentication.class);
+        when(auth.getName()).thenReturn("approver1");
+        when(ctx.getAuthentication()).thenReturn(auth);
+        SecurityContextHolder.setContext(ctx);
+
+        when(mwRepo.save(any(MaintenanceWindowEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaintenanceWindowResponseDTO resp = service.reject(10L, "  Not safe now  ");
+
+        assertEquals("REJECTED", resp.getWindowStatus());
+
+        assertEquals("REJECTED", mw.getWindowStatus());
+        assertEquals("Not safe now", mw.getRejectionReason());
+        assertEquals("approver1", mw.getDecidedBy());
+
+        verify(mwRepo).save(mw);
+    }
+
+    @Test
+    void rejectReasonMissingTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        UserEntity requester = new UserEntity();
+        requester.setUsername("engineer1");
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setWindowStatus("PENDING");
+        mw.setRequestedBy(requester);
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        BadRequestException ex1 = assertThrows(BadRequestException.class, () -> service.reject(10L, null));
+        assertTrue(ex1.getMessage().toLowerCase().contains("reason"));
+
+        BadRequestException ex2 = assertThrows(BadRequestException.class, () -> service.reject(10L, "   "));
+        assertTrue(ex2.getMessage().toLowerCase().contains("reason"));
+
+        verify(mwRepo, never()).save(any());
+    }
+
+    @Test
+    void rejectWhenNotPendingTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+
+        UserEntity requester = new UserEntity();
+        requester.setUsername("engineer1");
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setWindowStatus("APPROVED");
+        mw.setRequestedBy(requester);
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.reject(10L, "No"));
+        assertTrue(ex.getMessage().toLowerCase().contains("only pending"));
+
+        verify(mwRepo, never()).save(any());
     }
 }

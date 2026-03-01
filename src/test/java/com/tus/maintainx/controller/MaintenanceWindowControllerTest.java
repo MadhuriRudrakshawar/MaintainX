@@ -151,4 +151,52 @@ class MaintenanceWindowControllerTest {
         verify(service).delete(id);
     }
 
+    @Test
+    void approveMWTest() throws Exception {
+        long id = 10L;
+
+        MaintenanceWindowResponseDTO resp = MaintenanceWindowResponseDTO.builder()
+                .id(id)
+                .title("MW1")
+                .windowStatus("APPROVED")
+                .build();
+
+        when(service.approve(id)).thenReturn(resp);
+
+        mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/approve", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.windowStatus").value("APPROVED"));
+
+        verify(service).approve(id);
+    }
+
+    @Test
+    void rejectMWTest() throws Exception {
+        long id = 10L;
+
+        MaintenanceWindowResponseDTO resp = MaintenanceWindowResponseDTO.builder()
+                .id(id)
+                .title("MW1")
+                .windowStatus("REJECTED")
+                .build();
+
+        when(service.reject(id, "Not allowed this time")).thenReturn(resp);
+
+        String body = """
+                {
+                  "reason": "Not allowed this time"
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/reject", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.windowStatus").value("REJECTED"));
+
+        verify(service).reject(id, "Not allowed this time");
+    }
+
 }
