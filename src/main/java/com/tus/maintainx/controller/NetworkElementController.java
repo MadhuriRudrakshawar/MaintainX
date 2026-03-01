@@ -36,9 +36,8 @@ public class NetworkElementController {
         return ResponseEntity.ok(networkElementService.getByElementId(id));
     }
 
-    @PatchMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<NetworkElementResponseDTO> update(@PathVariable Long id, @Valid @RequestBody NetworkElementCreateDTO dto) {
-
         return ResponseEntity.ok(networkElementService.update(id, dto));
     }
 
