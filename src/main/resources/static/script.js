@@ -25,7 +25,7 @@ $(function () {
         }
     });
 
-    // ===================== Cache jQuery selectors (fix Sonar “Duplicated jQuery selector”) =====================
+    // ===================== Cache jQuery selectors =====================
     const $loginView = $("#loginView");
     const $homeView = $("#homeView");
 
@@ -61,6 +61,20 @@ $(function () {
     const $mwEnd = $("#mwEnd");
     const $mwElements = $("#mwElements");
 
+    // ===================== Approver Reject Modal (optional) =====================
+
+    const $rejectMwId = $("#rejectMwId");
+    const $rejectReason = $("#rejectReason");
+    const $confirmRejectBtn = $("#confirmRejectBtn");
+
+    const rejectModal = (function () {
+        const el = document.getElementById("rejectModal");
+        if (el && window.bootstrap && window.bootstrap.Modal) {
+            return new bootstrap.Modal(el);
+        }
+        return null;
+    })();
+
     // ===================== DataTables =====================
     const table = $neTableEl.DataTable({
         pageLength: 5,
@@ -87,7 +101,16 @@ $(function () {
             {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
             {data: "startTime", render: (v) => escapeHtml(formatDateTime(v))},
             {data: "endTime", render: (v) => escapeHtml(formatDateTime(v))},
-            {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+            {
+                data: "windowStatus",
+                render: (v, _t, row) => {
+                    const st = String(v || "");
+                    if (st.toUpperCase() === "REJECTED" && row && row.rejectionReason) {
+                        return escapeHtml(st + " (" + row.rejectionReason + ")");
+                    }
+                    return escapeHtml(st);
+                }
+            },
             {
                 data: "id",
                 render: (id) => `
@@ -97,6 +120,32 @@ $(function () {
             }
         ]
     });
+
+    const $pendingMwTableEl = $("#pendingMwTable");
+    let pendingMwTable = null;
+
+    if ($pendingMwTableEl.length) {
+        pendingMwTable = $pendingMwTableEl.DataTable({
+            pageLength: 5,
+            lengthChange: false,
+            rowId: "id",
+            columnDefs: [{orderable: false, targets: 6}],
+            columns: [
+                {data: "title", render: (v) => escapeHtml(v || "")},
+                {data: "requestedByUsername", render: (v) => escapeHtml(v || "")},
+                {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
+                {data: "startTime", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "endTime", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+                {
+                    data: "id", render: (id) => `
+      <button class="btn btn-success btn-sm js-approve" data-id="${id}">Approve</button>
+      <button class="btn btn-danger btn-sm js-reject" data-id="${id}">Reject</button>
+    `
+                }
+            ]
+        });
+    }
 
     // ===================== Initial Routing =====================
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
@@ -123,7 +172,6 @@ $(function () {
     // ===================== Maintenance Window Events =====================
     $saveWindowBtn.on("click", createMaintenanceWindow);
 
-    // instead of $("#mwStart, #mwEnd") (Sonar duplicate selector warning), reuse cached objects
     $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
 
     $mwTableEl.on("click", ".js-mw-delete", function () {
@@ -140,6 +188,51 @@ $(function () {
         }
         fillMwForm(row);
         $addWindowPanel.collapse("show");
+    });
+
+    // ===================== Approver Actions (Approve/Reject) =====================
+    $pendingMwTableEl.on("click", ".js-approve", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+
+        if (!confirm("Approve this maintenance request?")) return;
+
+        approveMaintenanceWindow(id);
+    });
+
+    $pendingMwTableEl.on("click", ".js-reject", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+
+        if (rejectModal && $rejectMwId.length && $rejectReason.length && $confirmRejectBtn.length) {
+            $rejectMwId.val(String(id));
+            $rejectReason.val("");
+            rejectModal.show();
+        } else {
+            const reason = prompt("Enter rejection reason:");
+            if (!reason) {
+                alert("Rejection reason is required");
+                return;
+            }
+            rejectMaintenanceWindow(id, reason.trim());
+        }
+    });
+
+    $confirmRejectBtn.on("click", function () {
+        const id = Number($rejectMwId.val());
+        const reason = ($rejectReason.val() || "").trim();
+
+        if (!id) {
+            alert("Invalid request id");
+            return;
+        }
+
+        if (!reason) {
+            alert("Rejection reason is required");
+            return;
+        }
+
+        rejectMaintenanceWindow(id, reason);
     });
 
     // ===================== Network Element Events =====================
@@ -336,6 +429,7 @@ $(function () {
             loadAll();
         } else if (r === "APPROVER") {
             $approverPage.removeClass("d-none");
+            loadPendingMaintenanceWindows();
         } else if (r === "ENGINEER") {
             $engineerPage.removeClass("d-none");
             applyMwDateConstraints();
@@ -468,6 +562,52 @@ $(function () {
         }
     }
 
+    function loadPendingMaintenanceWindows() {
+        if (!pendingMwTable) return;
+
+        $.get(MW_API)
+            .done((rows) => {
+                const pending = (rows || []).filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING");
+                pendingMwTable.clear().rows.add(pending).draw();
+            })
+            .fail((xhr) => {
+                alert("Failed to load pending maintenance windows");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function approveMaintenanceWindow(id) {
+        $.ajax({
+            url: `${MW_API}/${id}/approve`,
+            method: "PATCH"
+        })
+            .done(() => {
+                loadPendingMaintenanceWindows();
+                // optional: refresh engineer list if they have it open later
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Approve failed");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function rejectMaintenanceWindow(id, reason) {
+        $.ajax({
+            url: `${MW_API}/${id}/reject`,
+            method: "PATCH",
+            contentType: "application/json",
+            data: JSON.stringify({reason: reason})
+        })
+            .done(() => {
+                if (rejectModal) rejectModal.hide();
+                loadPendingMaintenanceWindows();
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Reject failed");
+                console.log(xhr.responseText);
+            });
+    }
+
     function deleteMaintenanceWindow(id) {
         if (!confirm("Delete this maintenance window?")) return;
 
@@ -495,8 +635,10 @@ $(function () {
 
         const selected = $mwElements.val() || [];
 
-        const requestedByIdRaw = sessionStorage.getItem("userId");
-        const requestedById = requestedByIdRaw ? Number(requestedByIdRaw) : null;
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
+            return null;
+        }
 
         if (!title || !startTime || !endTime) {
             alert("Please fill Title, Start, End");
@@ -534,7 +676,6 @@ $(function () {
             startTime: toSeconds(startTime),
             endTime: toSeconds(endTime),
             networkElementIds: selected.map((x) => Number(x)),
-            requestedById: requestedById
         };
     }
 

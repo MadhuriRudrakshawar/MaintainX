@@ -36,6 +36,12 @@ public class MaintenanceWindowEntity {
     @Column(nullable = false, length = 25)
     private String windowStatus;
 
+    @Column(length = 100)
+    private String rejectionReason;
+
+    @Column(nullable = false, length = 25)
+    private String decidedBy;
+
     @ManyToOne
     @JoinColumn(name = "requested_by")
     private UserEntity requestedBy;

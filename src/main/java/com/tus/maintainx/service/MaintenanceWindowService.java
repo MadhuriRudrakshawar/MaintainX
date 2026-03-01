@@ -15,15 +15,23 @@ import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MaintenanceWindowService {
 
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_APPROVED = "APPROVED";
+    private static final String STATUS_REJECTED = "REJECTED";
+    private static final String WINDOW_NOT_FOUND = "Maintenance Window not found: ";
 
     private final MaintenanceWindowRepository maintenanceWindowRepository;
     private final NetworkElementRepository networkElementRepository;
@@ -32,9 +40,12 @@ public class MaintenanceWindowService {
     @Transactional
     public MaintenanceWindowResponseDTO create(@Valid MaintenanceWindowCreateRequestDTO dto) {
 
-        UserEntity currentUser = userRepository.findById(dto.getRequestedById())
-                .orElseThrow(() -> new NotFoundException("User not found: " + dto.getRequestedById()));
+        String username = getAuthenticatedUsername();
 
+        UserEntity currentUser = userRepository.findByUsername(username);
+        if (currentUser == null) {
+            throw new NotFoundException("User not found: " + username);
+        }
 
         List<NetworkElementEntity> elements =
                 networkElementRepository.findAllById(dto.getNetworkElementIds());
@@ -48,7 +59,7 @@ public class MaintenanceWindowService {
         e.setDescription(dto.getDescription());
         e.setStartTime(dto.getStartTime());
         e.setEndTime(dto.getEndTime());
-        e.setWindowStatus("PENDING");
+        e.setWindowStatus(STATUS_PENDING);
         e.setRequestedBy(currentUser);
         e.getNetworkElements().clear();
         e.getNetworkElements().addAll(elements);
@@ -93,7 +104,7 @@ public class MaintenanceWindowService {
 
     public MaintenanceWindowResponseDTO getById(Long id) {
         MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Maintenance Window not found: " + id));
+                .orElseThrow(() -> new NotFoundException(WINDOW_NOT_FOUND + id));
         return toResponse(e);
     }
 
@@ -102,7 +113,7 @@ public class MaintenanceWindowService {
 
 
         MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Maintenance Window not found: " + id));
+                .orElseThrow(() -> new NotFoundException(WINDOW_NOT_FOUND + id));
 
 
         List<NetworkElementEntity> elements =
@@ -125,8 +136,11 @@ public class MaintenanceWindowService {
 
 
     private MaintenanceWindowResponseDTO toResponse(MaintenanceWindowEntity e) {
-        List<Long> ids = e.getNetworkElements().stream().map(NetworkElementEntity::getId).toList();
-        List<String> names = e.getNetworkElements().stream().map(NetworkElementEntity::getName).toList();
+        List<NetworkElementEntity> sortedElements = e.getNetworkElements().stream()
+                .sorted(Comparator.comparing(NetworkElementEntity::getId))
+                .toList();
+        List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
+        List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
 
         return MaintenanceWindowResponseDTO.builder()
                 .id(e.getId())
@@ -136,6 +150,8 @@ public class MaintenanceWindowService {
                 .endTime(e.getEndTime())
                 .windowStatus(e.getWindowStatus())
                 .requestedByUsername(e.getRequestedBy().getUsername())
+                .rejectionReason(e.getRejectionReason())
+                .decidedBy(e.getDecidedBy())
                 .networkElementIds(ids)
                 .networkElementNames(names)
                 .build();
@@ -144,8 +160,59 @@ public class MaintenanceWindowService {
     @Transactional
     public void delete(Long id) {
         if (!maintenanceWindowRepository.existsById(id)) {
-            throw new NotFoundException("Maintenance Window not found: " + id);
+            throw new NotFoundException(WINDOW_NOT_FOUND + id);
         }
         maintenanceWindowRepository.deleteById(id);
+
+    }
+
+    @Transactional
+    public MaintenanceWindowResponseDTO approve(Long id) {
+        MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(WINDOW_NOT_FOUND + id));
+
+        if (!STATUS_PENDING.equalsIgnoreCase(e.getWindowStatus())) {
+            throw new BadRequestException("Only PENDING requests can be approved");
+        }
+
+        String approver = getAuthenticatedUsername();
+
+        e.setWindowStatus(STATUS_APPROVED);
+        e.setRejectionReason(null);
+        e.setDecidedBy(approver);
+
+        return toResponse(maintenanceWindowRepository.save(e));
+    }
+
+    @Transactional
+    public MaintenanceWindowResponseDTO reject(Long id, String reason) {
+        MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(WINDOW_NOT_FOUND + id));
+
+        if (!STATUS_PENDING.equalsIgnoreCase(e.getWindowStatus())) {
+            throw new BadRequestException("Only PENDING requests can be rejected");
+        }
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BadRequestException("Rejection reason is required");
+        }
+
+        String approver = getAuthenticatedUsername();
+
+        e.setWindowStatus(STATUS_REJECTED);
+        e.setRejectionReason(reason.trim());
+        e.setDecidedBy(approver);
+
+        return toResponse(maintenanceWindowRepository.save(e));
+    }
+
+    private String getAuthenticatedUsername() {
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        String username = authentication != null ? authentication.getName() : null;
+        if (username == null || username.isBlank()) {
+            throw new BadRequestException("Authenticated user not found");
+        }
+        return username;
     }
 }
