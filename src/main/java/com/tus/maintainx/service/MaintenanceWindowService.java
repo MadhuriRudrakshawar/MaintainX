@@ -150,6 +150,8 @@ public class MaintenanceWindowService {
                 .endTime(e.getEndTime())
                 .windowStatus(e.getWindowStatus())
                 .requestedByUsername(e.getRequestedBy().getUsername())
+                .rejectionReason(e.getRejectionReason())
+                .decidedBy(e.getDecidedBy())
                 .networkElementIds(ids)
                 .networkElementNames(names)
                 .build();
