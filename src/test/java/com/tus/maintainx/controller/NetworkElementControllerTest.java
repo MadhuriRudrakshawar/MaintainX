@@ -92,23 +92,35 @@ class NetworkElementControllerTest {
     }
 
     @Test
-    void updateTest() throws Exception {
+    void updateWithPutTest() throws Exception {
         NetworkElementCreateDTO req = new NetworkElementCreateDTO(
-                "NE-001", "Core Router X", "ROUTER", "Dublin", "ACTIVE"
+                "NE-001", "Core Router Y", "ROUTER", "Dublin", "ACTIVE"
         );
 
         NetworkElementResponseDTO updated = new NetworkElementResponseDTO(
-                1L, "NE-001", "Core Router X", "ROUTER", "Dublin", "ACTIVE"
+                1L, "NE-001", "Core Router Y", "ROUTER", "Dublin", "ACTIVE"
         );
 
         Mockito.when(service.update(Mockito.eq(1L), any(NetworkElementCreateDTO.class))).thenReturn(updated);
 
-        mvc.perform(patch("/api/v1/network-elements/1")
+        mvc.perform(put("/api/v1/network-elements/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Core Router X"));
+                .andExpect(jsonPath("$.name").value("Core Router Y"));
+    }
+
+    @Test
+    void updateWithPatchNotAllowedTest() throws Exception {
+        NetworkElementCreateDTO req = new NetworkElementCreateDTO(
+                "NE-001", "Core Router Z", "ROUTER", "Dublin", "ACTIVE"
+        );
+
+        mvc.perform(patch("/api/v1/network-elements/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

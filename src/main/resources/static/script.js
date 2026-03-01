@@ -17,7 +17,7 @@ $(function () {
         const url = settings && settings.url ? String(settings.url) : "";
         const authEndpoint = url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/logout");
 
-        if (xhr && xhr.status === 401 && !authEndpoint) {
+        if (xhr && (xhr.status === 401 || xhr.status === 403) && !authEndpoint) {
             clearSessionData();
             hideAllRolePages();
             showLogin();

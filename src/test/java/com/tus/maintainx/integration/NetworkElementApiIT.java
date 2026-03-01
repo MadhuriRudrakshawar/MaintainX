@@ -63,6 +63,19 @@ class NetworkElementApiIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)));
 
+        NetworkElementCreateDTO putUpdate = new NetworkElementCreateDTO(
+                "NE-100", "Edge Switch Updated", "SWITCH", "Cork", "ACTIVE"
+        );
+
+        mvc.perform(put("/api/v1/network-elements/" + id)
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(putUpdate)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value("Edge Switch Updated"));
+
         mvc.perform(patch("/api/v1/network-elements/" + id + "/deactivate")
                         .with(user("it-user").roles("USER"))
                         .with(csrf()))
@@ -83,5 +96,35 @@ class NetworkElementApiIT {
         mvc.perform(get("/api/v1/network-elements/" + id)
                         .with(user("it-user").roles("USER")))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateWithPatchNotAllowedIT() throws Exception {
+        NetworkElementCreateDTO createDto = new NetworkElementCreateDTO(
+                "NE-200", "Aggregation Switch", "SWITCH", "Limerick", "ACTIVE"
+        );
+
+        String createResp = mvc.perform(post("/api/v1/network-elements")
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(createDto)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        long id = objectMapper.readTree(createResp).get("id").asLong();
+
+        NetworkElementCreateDTO patchDto = new NetworkElementCreateDTO(
+                "NE-200", "Aggregation Switch Updated", "SWITCH", "Limerick", "ACTIVE"
+        );
+
+        mvc.perform(patch("/api/v1/network-elements/" + id)
+                        .with(user("it-user").roles("USER"))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(patchDto)))
+                .andExpect(status().isMethodNotAllowed());
     }
 }
