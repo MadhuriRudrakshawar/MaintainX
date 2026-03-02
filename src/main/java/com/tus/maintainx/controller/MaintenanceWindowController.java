@@ -1,7 +1,6 @@
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.*;
-import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +66,7 @@ public class MaintenanceWindowController {
 
     @PatchMapping("/{id}/execution-status")
     @PreAuthorize("hasRole('ENGINEER')")
-    public ResponseEntity<MaintenanceWindowEntity> updateExecutionStatus(
+    public ResponseEntity<MaintenanceWindowResponseDTO> updateExecutionStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateExecutionStatusRequest req
     ) {

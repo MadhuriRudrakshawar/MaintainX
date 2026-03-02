@@ -153,6 +153,7 @@ public class MaintenanceWindowService {
                 .startTime(e.getStartTime())
                 .endTime(e.getEndTime())
                 .windowStatus(e.getWindowStatus())
+                .executionStatus(e.getExecutionStatus() == null ? null : e.getExecutionStatus().name())
                 .requestedByUsername(e.getRequestedBy().getUsername())
                 .rejectionReason(e.getRejectionReason())
                 .decidedBy(e.getDecidedBy())
@@ -222,7 +223,7 @@ public class MaintenanceWindowService {
 
 
     @Transactional
-    public MaintenanceWindowEntity updateExecutionStatus(Long id, ExecutionStatus newStatus) {
+    public MaintenanceWindowResponseDTO updateExecutionStatus(Long id, ExecutionStatus newStatus) {
 
         MaintenanceWindowEntity mw = maintenanceWindowRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found"));
@@ -232,6 +233,10 @@ public class MaintenanceWindowService {
         }
 
         ExecutionStatus current = mw.getExecutionStatus();
+
+        if (current == null) {
+            current = ExecutionStatus.PLANNED;
+        }
 
         if (newStatus == ExecutionStatus.IN_PROGRESS) {
             if (current != ExecutionStatus.PLANNED) {
@@ -250,6 +255,7 @@ public class MaintenanceWindowService {
             mw.setExecutionStatus(ExecutionStatus.COMPLETED);
         }
 
-        return maintenanceWindowRepository.save(mw);
+        MaintenanceWindowEntity saved = maintenanceWindowRepository.save(mw);
+        return toResponse(saved);
     }
 }
