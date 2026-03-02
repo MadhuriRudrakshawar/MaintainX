@@ -17,11 +17,16 @@ $(function () {
         const url = settings && settings.url ? String(settings.url) : "";
         const authEndpoint = url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/logout");
 
-        if (xhr && (xhr.status === 401 || xhr.status === 403) && !authEndpoint) {
+        if (xhr && xhr.status === 401 && !authEndpoint) {
             clearSessionData();
             hideAllRolePages();
             showLogin();
             alert("Session expired. Please login again.");
+            return;
+        }
+
+        if (xhr && xhr.status === 403 && !authEndpoint) {
+            alert(errMsg(xhr) || "Action not allowed");
         }
     });
 
@@ -95,7 +100,7 @@ $(function () {
         pageLength: 5,
         lengthChange: false,
         rowId: "id",
-        columnDefs: [{orderable: false, targets: 5}],
+        columnDefs: [{orderable: false, targets: 6}],
         columns: [
             {data: "title", render: (v) => escapeHtml(v || "")},
             {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
@@ -112,11 +117,17 @@ $(function () {
                 }
             },
             {
+                data: "executionStatus",
+                render: (v, _t, row) => {
+                    const derived = deriveExecutionStatus(row && row.startTime, row && row.endTime);
+                    const raw = String(v || (row && row.executionStatus) || "").trim();
+                    const effective = raw && raw.toUpperCase() !== "PLANNED" ? raw : derived;
+                    return makeExecutionBadge(effective);
+                }
+            },
+            {
                 data: "id",
-                render: (id) => `
-          <button class="btn btn-outline-primary btn-sm js-mw-edit" data-id="${id}">Edit</button>
-          <button class="btn btn-outline-danger btn-sm js-mw-delete" data-id="${id}">Delete</button>
-        `
+                render: (id, _t, row) => mwActionsHtml(id, row)
             }
         ]
     });
@@ -190,7 +201,20 @@ $(function () {
         $addWindowPanel.collapse("show");
     });
 
-    // ===================== Approver Actions (Approve/Reject) =====================
+
+    $mwTableEl.on("click", ".js-mw-start", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+        updateExecutionStatus(id, "IN_PROGRESS");
+    });
+
+    $mwTableEl.on("click", ".js-mw-complete", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+        updateExecutionStatus(id, "COMPLETED");
+    });
+
+// ===================== Approver Actions (Approve/Reject) =====================
     $pendingMwTableEl.on("click", ".js-approve", function () {
         const id = Number($(this).data("id"));
         if (!id) return;
@@ -250,7 +274,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done((updated) => {
-                    table.row("#" + updated.id).data(updated).draw(false);
+                    table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
                     clearForm();
                     $saveElementBtn.removeData("editId");
                     $addElementPanel.collapse("hide");
@@ -299,7 +323,7 @@ $(function () {
             method: "PATCH"
         })
             .done((updated) => {
-                table.row("#" + updated.id).data(updated).draw(false);
+                table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
             })
             .fail((xhr) => {
                 alert(errMsg(xhr) || "Status update failed");
@@ -491,7 +515,51 @@ $(function () {
     `;
     }
 
-    // ===== MW Helpers =====
+
+    function makeExecutionBadge(status) {
+        const s = String(status || "").toUpperCase();
+        if (s === "COMPLETED") return '<span class="badge text-bg-success">COMPLETED</span>';
+        if (s === "IN_PROGRESS") return '<span class="badge text-bg-warning">IN_PROGRESS</span>';
+        return '<span class="badge text-bg-secondary">PLANNED</span>';
+    }
+
+    function deriveExecutionStatus(startTimeVal, endTimeVal) {
+        const now = Date.now();
+        const s = Date.parse(String(startTimeVal || ""));
+        const e = Date.parse(String(endTimeVal || ""));
+        if (!isNaN(e) && now > e) return "COMPLETED";
+        if (!isNaN(s) && now >= s) return "IN_PROGRESS";
+        return "PLANNED";
+    }
+
+    function mwActionsHtml(id, row) {
+        const approval = String((row && row.windowStatus) || "").toUpperCase();
+        const derived = deriveExecutionStatus(row && row.startTime, row && row.endTime);
+        const raw = String((row && row.executionStatus) || "").trim();
+        const exec = String(raw && raw.toUpperCase() !== "PLANNED" ? raw : derived).toUpperCase();
+        const startOk = approval === "APPROVED" && exec === "PLANNED" && canStartNow(row && row.startTime);
+        const completeOk = approval === "APPROVED" && exec === "IN_PROGRESS";
+        const canEditDelete = approval === "PENDING";
+
+        const btns = [];
+        if (startOk) btns.push(`<button class="btn btn-outline-success js-mw-start" data-id="${id}">Start</button>`);
+        if (completeOk) btns.push(`<button class="btn btn-outline-secondary js-mw-complete" data-id="${id}">Complete</button>`);
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-primary js-mw-edit" data-id="${id}">Edit</button>`);
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-danger js-mw-delete" data-id="${id}">Delete</button>`);
+
+        if (!btns.length) return `<span class="text-muted">—</span>`;
+
+        return `<div class="btn-group btn-group-sm" role="group">${btns.join("")}</div>`;
+    }
+
+    function canStartNow(startTimeVal) {
+        if (!startTimeVal) return true;
+        const ms = Date.parse(String(startTimeVal));
+        if (isNaN(ms)) return true;
+        return Date.now() >= ms;
+    }
+
+// ===== MW Helpers =====
     function loadNetworkElementsForMw() {
         $.get(API)
             .done((rows) => {
@@ -512,7 +580,10 @@ $(function () {
         $.get(MW_API)
             .done((rows) => {
                 mwCache.clear();
-                rows.forEach((w) => mwCache.set(Number(w.id), w));
+                rows.forEach((w) => {
+                    if (!w.executionStatus) w.executionStatus = deriveExecutionStatus(w.startTime, w.endTime);
+                    mwCache.set(Number(w.id), w);
+                });
                 mwTable.clear().rows.add(rows).draw();
             })
             .fail((xhr) => {
@@ -608,6 +679,36 @@ $(function () {
             });
     }
 
+
+    function updateExecutionStatus(id, status) {
+        $.ajax({
+            url: `${MW_API}/${id}/execution-status`,
+            method: "PATCH",
+            contentType: "application/json",
+            data: JSON.stringify({status: status})
+        })
+            .done((updated) => {
+                const current = mwCache.get(Number(id)) || {};
+                const merged = Object.assign({}, current, updated || {});
+                mwCache.set(Number(id), merged);
+
+                const dtRow = mwTable.row("#" + $.escapeSelector(String(id)));
+                if (dtRow && dtRow.data()) {
+                    const d = dtRow.data();
+                    const newData = Object.assign({}, d, updated || {});
+                    dtRow.data(newData).draw(false);
+                } else loadMaintenanceWindows();
+            })
+            .fail((xhr) => {
+                if (xhr && xhr.status === 403) {
+                    alert(errMsg(xhr) || "Action not allowed");
+                    return;
+                }
+                alert(errMsg(xhr) || "Execution status update failed");
+                console.log(xhr.responseText);
+            });
+    }
+
     function deleteMaintenanceWindow(id) {
         if (!confirm("Delete this maintenance window?")) return;
 
@@ -635,11 +736,6 @@ $(function () {
 
         const selected = $mwElements.val() || [];
 
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
-
         if (!title || !startTime || !endTime) {
             alert("Please fill Title, Start, End");
             return null;
@@ -664,12 +760,6 @@ $(function () {
             alert("End Time must be after Start Time");
             return null;
         }
-
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
-
         return {
             title: title,
             description: "",
