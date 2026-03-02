@@ -1,14 +1,13 @@
 package com.tus.maintainx.controller;
 
-import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
-import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
-import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
-import com.tus.maintainx.dto.RejectMaintenanceWindowRequestDTO;
+import com.tus.maintainx.dto.*;
+import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -64,5 +63,14 @@ public class MaintenanceWindowController {
             @Valid @RequestBody RejectMaintenanceWindowRequestDTO dto) {
 
         return ResponseEntity.ok(service.reject(id, dto.getReason()));
+    }
+
+    @PatchMapping("/{id}/execution-status")
+    @PreAuthorize("hasRole('ENGINEER')")
+    public ResponseEntity<MaintenanceWindowEntity> updateExecutionStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateExecutionStatusRequest req
+    ) {
+        return ResponseEntity.ok(service.updateExecutionStatus(id, req.status()));
     }
 }
