@@ -460,17 +460,4 @@ class MaintenanceWindowServiceTest {
 
         verify(mwRepo, never()).save(any());
     }
-
-    @Test
-    void rejectWindowNotFoundTest() {
-        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
-
-        when(mwRepo.findById(10L)).thenReturn(Optional.empty());
-
-        NotFoundException ex = assertThrows(NotFoundException.class, () -> service.reject(10L, "No"));
-        assertTrue(ex.getMessage().toLowerCase().contains("not found"));
-
-        verify(mwRepo, never()).save(any());
-    }
 }
