@@ -172,6 +172,30 @@ class MaintenanceWindowControllerTest {
     }
 
     @Test
+    void approveMWWithDecidedByTest() throws Exception {
+        long id = 11L;
+
+        MaintenanceWindowResponseDTO resp = MaintenanceWindowResponseDTO.builder()
+                .id(id)
+                .title("MW2")
+                .windowStatus("APPROVED")
+                .decidedBy("approver1")
+                .rejectionReason(null)
+                .build();
+
+        when(service.approve(id)).thenReturn(resp);
+
+        mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/approve", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(11))
+                .andExpect(jsonPath("$.windowStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.decidedBy").value("approver1"))
+                .andExpect(jsonPath("$.rejectionReason").isEmpty());
+
+        verify(service).approve(id);
+    }
+
+    @Test
     void rejectMWTest() throws Exception {
         long id = 10L;
 
@@ -197,6 +221,24 @@ class MaintenanceWindowControllerTest {
                 .andExpect(jsonPath("$.windowStatus").value("REJECTED"));
 
         verify(service).reject(id, "Not allowed this time");
+    }
+
+    @Test
+    void rejectMWValidationFailTest() throws Exception {
+        long id = 10L;
+
+        String body = """
+                {
+                  "reason": "   "
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/reject", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).reject(anyLong(), any(String.class));
     }
 
 }
