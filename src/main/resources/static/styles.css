@@ -1,3 +1,16 @@
+.chart-wrap {
+    position: relative;
+    height: 320px;
+}
+
+#analyticsView .card {
+    border: 1px solid #e9ecef;
+}
+
+@media (max-width: 768px) {
+    .chart-wrap {
+        height: 260px;
+    }
 #addElementPanel.collapsing,
 #addWindowPanel.collapsing {
     transition: none !important;

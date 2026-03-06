@@ -44,8 +44,18 @@
 
     <!-- ===================== ADMIN PAGE ===================== -->
     <div class="d-none" id="adminPage">
-        <div class="alert alert-info mb-3">Admin Dashboard</div>
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                <i class="bi bi-graph-up me-1"></i> View Analytics
+            </button>
 
+            <button aria-controls="addElementPanel" aria-expanded="false"
+                    class="btn btn-primary btn-sm"
+                    data-bs-target="#addElementPanel"
+                    data-bs-toggle="collapse" type="button">
+                <i class="bi bi-plus-lg me-1"></i> Add Network Element
+            </button>
+        </div>
         <div class="d-flex gap-2 align-items-center">
             <button aria-controls="addElementPanel" aria-expanded="false"
                     class="btn btn-primary btn-sm"
@@ -163,18 +173,23 @@
                 <i class="bi bi-journal-text me-1"></i> Audit Log
             </button>
         </div>
+        <div class="mb-3">
+            <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                <i class="bi bi-graph-up me-1"></i> View Analytics
+            </button>
+        </div>
 
         <div class="container px-0">
-            <table class="table table-striped table-sm align-middle w-100" id="pendingMwTable">
+            <table class="table table-striped table-sm" id="pendingMwTable">
                 <thead>
                 <tr>
                     <th>Title</th>
                     <th>Engineer</th>
-                    <th>Network Elements</th>
+                    <th>Elements</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Approval Status</th>
-                    <th style="min-width: 130px;">Actions</th>
+                    <th>Status</th>
+                    <th style="min-width: 190px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
@@ -207,21 +222,24 @@
                 </div>
             </div>
         </div>
-
-
     </div>
 
     <!-- ===================== ENGINEER PAGE ===================== -->
     <div class="d-none" id="engineerPage">
         <div class="alert alert-info mb-3"> Engineer Dashboard</div>
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                <i class="bi bi-graph-up me-1"></i> View Analytics
+            </button>
 
 
-        <button aria-controls="addWindowPanel" aria-expanded="false"
-                class="btn btn-primary btn-sm"
-                data-bs-target="#addWindowPanel"
-                data-bs-toggle="collapse" type="button">
-            <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
-        </button>
+            <button aria-controls="addWindowPanel" aria-expanded="false"
+                    class="btn btn-primary btn-sm"
+                    data-bs-target="#addWindowPanel"
+                    data-bs-toggle="collapse" type="button">
+                <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
+            </button>
+        </div>
 
         <div class="d-flex justify-content-center">
             <div class="col-12 col-md-6 col-lg-4">
@@ -345,13 +363,85 @@
         </div>
     </div>
 
+    <!-- ===================== ANALYTICS VIEW ===================== -->
+    <div class="d-none" id="analyticsView">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="m-0">Analytics Dashboard</h5>
+            <button class="btn btn-outline-secondary btn-sm" id="backToDashboardBtn" type="button">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </button>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Maintenance Status Distribution</h6>
+                        <div class="chart-wrap"><canvas id="chartMaintenanceStatus"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Maintenance Windows Over Time</h6>
+                        <div class="chart-wrap"><canvas id="chartWindowsTrend"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Network Elements by Region</h6>
+                        <div class="chart-wrap"><canvas id="chartElementsByRegion"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Network Elements by Type</h6>
+                        <div class="chart-wrap"><canvas id="chartElementsByType"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Element Health Split</h6>
+                        <div class="chart-wrap"><canvas id="chartElementHealth"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Approval / Rejection Activity</h6>
+                        <div class="chart-wrap"><canvas id="chartApprovalTrend"></canvas></div>
+                        <div class="form-text" id="approvalTrendNote"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Top Impacted Network Elements</h6>
+                        <div class="chart-wrap"><canvas id="chartTopImpactedElements"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- JS -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
+    <!-- Bootstrap bundle is needed for collapse to work -->
     <script crossorigin="anonymous"
             src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
     <script src="script.js"></script>
 </div>

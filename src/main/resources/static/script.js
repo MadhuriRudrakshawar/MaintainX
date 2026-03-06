@@ -1,6 +1,7 @@
 $(function () {
     const API = "/api/v1/network-elements";
     const MW_API = "/api/v1/maintenance-windows";
+    const ANALYTICS_API = "/api/v1/analytics/dashboard";
     const TOKEN_KEY = "accessToken";
     const mwCache = new Map();
 
@@ -43,6 +44,13 @@ $(function () {
     const $approverPage = $("#approverPage");
     const $engineerPage = $("#engineerPage");
     const $rolePages = $adminPage.add($approverPage).add($engineerPage);
+    const $analyticsView = $("#analyticsView");
+    const $viewAnalyticsBtns = $(".js-view-analytics");
+    const $backToDashboardBtn = $("#backToDashboardBtn");
+    const $approvalTrendNote = $("#approvalTrendNote");
+
+    const charts = {};
+    let activeRole = "";
 
     const $addElementPanel = $("#addElementPanel");
     const $saveElementBtn = $("#saveElementBtn");
@@ -246,6 +254,8 @@ $(function () {
     });
 
     $logoutBtn.on("click", logout);
+    $viewAnalyticsBtns.on("click", openAnalyticsView);
+    $backToDashboardBtn.on("click", closeAnalyticsView);
 
 
     // ===================== Audit Log (Admin + Approver) =====================
@@ -500,6 +510,7 @@ $(function () {
             clearSessionData();
             $username.val("");
             $password.val("");
+            $analyticsView.addClass("d-none");
             hideAllRolePages();
             showLogin();
         });
@@ -528,6 +539,8 @@ $(function () {
 
     function routeByRole(role) {
         const r = String(role || "").toUpperCase();
+        activeRole = r;
+        $analyticsView.addClass("d-none");
         hideAllRolePages();
 
         if (r === "ADMIN") {
@@ -544,6 +557,192 @@ $(function () {
         } else {
             logout();
         }
+    }
+
+    function openAnalyticsView() {
+        if (!window.Chart) {
+            alert("Chart.js is not available.");
+            return;
+        }
+
+        hideAllRolePages();
+        $analyticsView.removeClass("d-none");
+        renderAnalyticsDashboard();
+    }
+
+    function closeAnalyticsView() {
+        $analyticsView.addClass("d-none");
+        routeByRole(activeRole || sessionStorage.getItem("role"));
+    }
+
+    function renderAnalyticsDashboard() {
+        $.get(ANALYTICS_API)
+            .done((dashboard) => {
+                drawMaintenanceStatusChart(dashboard.maintenanceStatusCounts || {});
+                drawWindowsTrendChart(dashboard.windowsByDate || {});
+                drawElementsByRegionChart(dashboard.elementsByRegion || {});
+                drawElementsByTypeChart(dashboard.elementsByType || {});
+                drawElementHealthChart(dashboard.elementsByStatus || {});
+                drawApprovalTrendChart(dashboard.approvalRejectionTrend || []);
+                drawTopImpactedElementsChart(dashboard.topImpactedElements || {});
+            })
+            .fail(() => {
+                alert("Failed to load analytics data.");
+            });
+    }
+
+    function mapToEntries(countMap) {
+        return Object.entries(countMap || {});
+    }
+
+    function createOrUpdateChart(canvasId, config) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+        charts[canvasId] = new Chart(canvas, config);
+    }
+
+    function drawMaintenanceStatusChart(statusCounts) {
+        const entries = mapToEntries(statusCounts);
+        createOrUpdateChart("chartMaintenanceStatus", {
+            type: "doughnut",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Windows",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#0d6efd", "#198754", "#dc3545", "#fd7e14", "#6c757d"]
+                }]
+            },
+            options: {responsive: true, maintainAspectRatio: false}
+        });
+    }
+
+    function drawWindowsTrendChart(windowsByDate) {
+        const entries = mapToEntries(windowsByDate);
+        createOrUpdateChart("chartWindowsTrend", {
+            type: "line",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Maintenance windows",
+                    data: entries.map(e => e[1]),
+                    borderColor: "#0d6efd",
+                    backgroundColor: "rgba(13, 110, 253, 0.2)",
+                    tension: 0.25,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
+    function drawElementsByRegionChart(regionCounts) {
+        const entries = mapToEntries(regionCounts);
+        createOrUpdateChart("chartElementsByRegion", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#20c997"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
+    function drawElementsByTypeChart(typeCounts) {
+        const entries = mapToEntries(typeCounts);
+        createOrUpdateChart("chartElementsByType", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#6f42c1"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
+    function drawElementHealthChart(healthCounts) {
+        const entries = mapToEntries(healthCounts);
+        createOrUpdateChart("chartElementHealth", {
+            type: "pie",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#198754", "#dc3545", "#6c757d"]
+                }]
+            },
+            options: {responsive: true, maintainAspectRatio: false}
+        });
+    }
+
+    function drawApprovalTrendChart(trend) {
+        const labels = (trend || []).map((p) => p.date);
+        const approved = (trend || []).map((p) => Number(p.approved || 0));
+        const rejected = (trend || []).map((p) => Number(p.rejected || 0));
+
+        createOrUpdateChart("chartApprovalTrend", {
+            type: "bar",
+            data: {
+                labels,
+                datasets: [
+                    {label: "Approved", data: approved, backgroundColor: "#198754"},
+                    {label: "Rejected", data: rejected, backgroundColor: "#dc3545"}
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+
+        $approvalTrendNote.text("Trend is aggregated by backend from maintenance window status by date.");
+    }
+
+    function drawTopImpactedElementsChart(topImpactedElements) {
+        const entries = mapToEntries(topImpactedElements);
+        createOrUpdateChart("chartTopImpactedElements", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Maintenance impact count",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#fd7e14"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: "y",
+                scales: {x: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
     }
 
     // ===== Network Element Helpers =====
@@ -845,6 +1044,7 @@ $(function () {
 
     function readMwForm() {
         applyMwDateConstraints();
+        const requestedById = Number(sessionStorage.getItem("userId"));
 
         const title = $mwTitle.val().trim();
         const startTime = $mwStart.val();
