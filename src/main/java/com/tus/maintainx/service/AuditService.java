@@ -52,14 +52,6 @@ public class AuditService {
         auditLogRepository.save(log);
     }
 
-    public List<AuditLogResponseDTO> getLogs(Long maintenanceWindowId) {
-        return auditLogRepository
-                .findByMaintenanceWindow_IdOrderByCreatedAtAsc(maintenanceWindowId)
-                .stream()
-                .map(this::toResponseDto)
-                .toList();
-    }
-
     public List<AuditLogResponseDTO> getAllLogs() {
         List<AuditLogResponseDTO> logs = auditLogRepository
                 .findAllByOrderByCreatedAtAsc()
