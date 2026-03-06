@@ -8,6 +8,7 @@ import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.AuditLogRepository;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -34,10 +35,10 @@ public class AuditService {
         String username = (auth != null && auth.getName() != null) ? auth.getName() : "SYSTEM";
 
         String role = "UNKNOWN";
-        if (auth != null && auth.getAuthorities() != null) {
+        if (auth != null) {
             role = auth.getAuthorities().stream()
                     .findFirst()
-                    .map(a -> a.getAuthority())
+                    .map(GrantedAuthority::getAuthority)
                     .orElse("UNKNOWN");
         }
 
@@ -55,14 +56,46 @@ public class AuditService {
         return auditLogRepository
                 .findByMaintenanceWindow_IdOrderByCreatedAtAsc(maintenanceWindowId)
                 .stream()
-                .map(x -> new AuditLogResponseDTO(
-                        x.getId(),
-                        x.getAction(),
-                        x.getActorUsername(),
-                        x.getActorRole(),
-                        x.getDetails(),
-                        x.getCreatedAt()
+                .map(this::toResponseDto)
+                .toList();
+    }
+
+    public List<AuditLogResponseDTO> getAllLogs() {
+        List<AuditLogResponseDTO> logs = auditLogRepository
+                .findAllByOrderByCreatedAtAsc()
+                .stream()
+                .map(this::toResponseDto)
+                .toList();
+
+        if (!logs.isEmpty()) {
+            return logs;
+        }
+
+        return maintenanceWindowRepository.findAll()
+                .stream()
+                .map(w -> new AuditLogResponseDTO(
+                        w.getId(),
+                        w.getTitle(),
+                        AuditAction.SUBMITTED,
+                        w.getRequestedBy() != null
+                                ? w.getRequestedBy().getRole() + "(" + w.getRequestedBy().getUsername() + ")"
+                                : "UNKNOWN(UNKNOWN)",
+                        w.getWindowStatus(),
+                        w.getStartTime(),
+                        w.getEndTime()
                 ))
                 .toList();
+    }
+
+    private AuditLogResponseDTO toResponseDto(AuditLog x) {
+        return new AuditLogResponseDTO(
+                x.getId(),
+                x.getMaintenanceWindow().getTitle(),
+                x.getAction(),
+                x.getActorRole() + "(" + x.getActorUsername() + ")",
+                x.getMaintenanceWindow().getWindowStatus(),
+                x.getMaintenanceWindow().getStartTime(),
+                x.getMaintenanceWindow().getEndTime()
+        );
     }
 }

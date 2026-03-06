@@ -14,9 +14,10 @@ import java.time.LocalDateTime;
 public class AuditLogResponseDTO {
 
     private Long id;
+    private String maintenanceWindowName;
     private AuditAction action;
-    private String actorUsername;
-    private String actorRole;
-    private String details;
-    private LocalDateTime createdAt;
+    private String usernameRole;
+    private String windowStatus;
+    private LocalDateTime startDuration;
+    private LocalDateTime endDuration;
 }

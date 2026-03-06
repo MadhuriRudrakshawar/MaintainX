@@ -42,6 +42,12 @@ $(function () {
     const $addElementPanel = $("#addElementPanel");
     const $saveElementBtn = $("#saveElementBtn");
 
+    const $adminAuditBtn = $("#adminAuditBtn");
+    const $approverAuditBtn = $("#approverAuditBtn");
+
+    const $auditTableEl = $("#auditTable");
+
+
     const $neCode = $("#neCode");
     const $neName = $("#neName");
     const $neType = $("#neType");
@@ -69,6 +75,15 @@ $(function () {
 
     const rejectModal = (function () {
         const el = document.getElementById("rejectModal");
+        if (el && window.bootstrap && window.bootstrap.Modal) {
+            return new bootstrap.Modal(el);
+        }
+        return null;
+    })();
+
+
+    const auditModal = (function () {
+        const el = document.getElementById("auditModal");
         if (el && window.bootstrap && window.bootstrap.Modal) {
             return new bootstrap.Modal(el);
         }
@@ -147,6 +162,27 @@ $(function () {
         });
     }
 
+
+    // ===================== Audit Log DataTable =====================
+    let auditTable = null;
+
+    if ($auditTableEl.length) {
+        auditTable = $auditTableEl.DataTable({
+            pageLength: 8,
+            lengthChange: false,
+            ordering: true,
+            order: [[0, "asc"]],
+            columns: [
+                {data: "maintenanceWindowName", render: (v) => escapeHtml(v || "")},
+                {data: "usernameRole", render: (v) => escapeHtml(v || "")},
+                {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+                {data: "action", render: (v) => escapeHtml(v || "")},
+                {data: "startDuration", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "endDuration", render: (v) => escapeHtml(formatDateTime(v))}
+            ]
+        });
+    }
+
     // ===================== Initial Routing =====================
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
     const savedRole = sessionStorage.getItem("role");
@@ -168,6 +204,12 @@ $(function () {
     });
 
     $logoutBtn.on("click", logout);
+
+
+    // ===================== Audit Log (Admin + Approver) =====================
+    $adminAuditBtn.on("click", openAuditLog);
+    $approverAuditBtn.on("click", openAuditLog);
+
 
     // ===================== Maintenance Window Events =====================
     $saveWindowBtn.on("click", createMaintenanceWindow);
@@ -575,6 +617,36 @@ $(function () {
                 console.log(xhr.responseText);
             });
     }
+
+
+    // ===================== Audit Log functions =====================
+    function openAuditLog() {
+        if (!auditModal) {
+            alert("Audit modal not available");
+            return;
+        }
+
+        if (auditTable) auditTable.clear().draw();
+        loadAuditLogs();
+        auditModal.show();
+    }
+
+    function loadAuditLogs() {
+        if (!auditTable) return;
+
+        $.ajax({
+            url: `${MW_API}/audit-logs`,
+            method: "GET"
+        })
+            .done((rows) => {
+                auditTable.clear().rows.add(rows || []).draw();
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Failed to load audit logs");
+                console.log(xhr && xhr.responseText ? xhr.responseText : xhr);
+            });
+    }
+
 
     function approveMaintenanceWindow(id) {
         $.ajax({

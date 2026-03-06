@@ -23,6 +23,12 @@ public class AuditController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
+    @GetMapping("/audit-logs")
+    public ResponseEntity<List<AuditLogResponseDTO>> getAllAuditLogs() {
+        return ResponseEntity.ok(auditService.getAllLogs());
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','APPROVER')")
     @GetMapping("/{id}/audit-logs")
     public ResponseEntity<List<AuditLogResponseDTO>> getAuditLogs(@PathVariable("id") Long maintenanceWindowId) {
         return ResponseEntity.ok(auditService.getLogs(maintenanceWindowId));

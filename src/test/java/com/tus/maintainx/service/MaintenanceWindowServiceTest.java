@@ -47,7 +47,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
 
         mockAuthenticatedUser("engineer1");
 
@@ -105,7 +105,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
         mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
@@ -136,7 +136,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
         mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
@@ -178,7 +178,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
 
         // entity 1
         UserEntity u = new UserEntity();
@@ -214,7 +214,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
 
         UserEntity u = new UserEntity();
         u.setUsername("engineer1");
@@ -240,7 +240,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
 
         UserEntity u = new UserEntity();
         u.setUsername("engineer1");
@@ -285,7 +285,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void deleteMWExistTest() {
         MaintenanceWindowRepository repo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null, mock(AuditService.class));
 
         long id = 10L;
         when(repo.existsById(id)).thenReturn(true);
@@ -298,7 +298,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void deleteMWNotExistTest() {
         MaintenanceWindowRepository repo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null, mock(AuditService.class));
 
         long id = 99L;
         when(repo.existsById(id)).thenReturn(false);
@@ -313,7 +313,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverApprovedTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -351,7 +351,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverWhenNotPendingFailTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -373,7 +373,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverWindowNotFoundTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         when(mwRepo.findById(10L)).thenReturn(Optional.empty());
 
@@ -384,7 +384,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectWindowTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -419,7 +419,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectReasonMissingTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -443,7 +443,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectWhenNotPendingTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -461,3 +461,4 @@ class MaintenanceWindowServiceTest {
         verify(mwRepo, never()).save(any());
     }
 }
+

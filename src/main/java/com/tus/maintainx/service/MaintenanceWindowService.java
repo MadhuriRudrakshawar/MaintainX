@@ -7,6 +7,7 @@ import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
+import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.exception.BadRequestException;
 import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.exception.OverlapException;
@@ -36,6 +37,7 @@ public class MaintenanceWindowService {
     private final MaintenanceWindowRepository maintenanceWindowRepository;
     private final NetworkElementRepository networkElementRepository;
     private final UserRepository userRepository;
+    private final AuditService auditService;
 
     @Transactional
     public MaintenanceWindowResponseDTO create(@Valid MaintenanceWindowCreateRequestDTO dto) {
@@ -88,6 +90,7 @@ public class MaintenanceWindowService {
         }
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
+        auditService.log(saved.getId(), AuditAction.CREATED, "Maintenance window created");
         return toResponse(saved);
     }
 
@@ -131,6 +134,7 @@ public class MaintenanceWindowService {
         e.getNetworkElements().addAll(elements);
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
+        auditService.log(saved.getId(), AuditAction.UPDATED, "Maintenance window updated");
         return toResponse(saved);
     }
 
@@ -162,6 +166,7 @@ public class MaintenanceWindowService {
         if (!maintenanceWindowRepository.existsById(id)) {
             throw new NotFoundException(WINDOW_NOT_FOUND + id);
         }
+        auditService.log(id, AuditAction.CANCELLED, "Maintenance window deleted");
         maintenanceWindowRepository.deleteById(id);
 
     }
@@ -181,7 +186,9 @@ public class MaintenanceWindowService {
         e.setRejectionReason(null);
         e.setDecidedBy(approver);
 
-        return toResponse(maintenanceWindowRepository.save(e));
+        MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
+        auditService.log(saved.getId(), AuditAction.APPROVED, "Maintenance window approved");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -203,7 +210,9 @@ public class MaintenanceWindowService {
         e.setRejectionReason(reason.trim());
         e.setDecidedBy(approver);
 
-        return toResponse(maintenanceWindowRepository.save(e));
+        MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
+        auditService.log(saved.getId(), AuditAction.REJECTED, "Maintenance window rejected: " + reason.trim());
+        return toResponse(saved);
     }
 
     private String getAuthenticatedUsername() {
