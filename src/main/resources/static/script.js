@@ -127,7 +127,6 @@ $(function () {
     });
 
     const mwTable = $mwTableEl.DataTable({
-        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
         pageLength: 5,
         lengthChange: true,
         lengthMenu: [[5, 10, 20], [5, 10, 20]],
@@ -484,6 +483,7 @@ $(function () {
             },
             error: function (xhr) {
                 clearSessionData();
+                alert("Invalid username or password.");
                 alert(errMsg(xhr) || "Login failed");
                 console.log(xhr.status, xhr.responseText);
             }
@@ -507,6 +507,7 @@ $(function () {
             url: "/api/v1/auth/logout",
             method: "POST"
         }).always(function () {
+            $("body").removeClass("analytics-mode");
             clearSessionData();
             $username.val("");
             $password.val("");
@@ -567,11 +568,13 @@ $(function () {
 
         hideAllRolePages();
         $analyticsView.removeClass("d-none");
+        $("body").addClass("analytics-mode");
         renderAnalyticsDashboard();
     }
 
     function closeAnalyticsView() {
         $analyticsView.addClass("d-none");
+        $("body").removeClass("analytics-mode");
         routeByRole(activeRole || sessionStorage.getItem("role"));
     }
 
@@ -579,8 +582,7 @@ $(function () {
         $.get(ANALYTICS_API)
             .done((dashboard) => {
                 drawMaintenanceStatusChart(dashboard.maintenanceStatusCounts || {});
-                drawWindowsTrendChart(dashboard.windowsByDate || {});
-                drawElementsByRegionChart(dashboard.elementsByRegion || {});
+                renderApprovedWindowTimeline(dashboard.approvedWindowTimeline || []);
                 drawElementsByTypeChart(dashboard.elementsByType || {});
                 drawElementHealthChart(dashboard.elementsByStatus || {});
                 drawApprovalTrendChart(dashboard.approvalRejectionTrend || []);
@@ -621,47 +623,104 @@ $(function () {
         });
     }
 
-    function drawWindowsTrendChart(windowsByDate) {
-        const entries = mapToEntries(windowsByDate);
-        createOrUpdateChart("chartWindowsTrend", {
-            type: "line",
-            data: {
-                labels: entries.map(e => e[0]),
-                datasets: [{
-                    label: "Maintenance windows",
-                    data: entries.map(e => e[1]),
-                    borderColor: "#0d6efd",
-                    backgroundColor: "rgba(13, 110, 253, 0.2)",
-                    tension: 0.25,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+    function renderApprovedWindowTimeline(approvedWindows) {
+        const $container = $("#bookedSlotsHeatmap");
+        if (!$container.length) return;
+
+        if (!approvedWindows.length) {
+            $container.html('<div class="text-muted small">No approved bookings found.</div>');
+            return;
+        }
+
+        const parsed = approvedWindows
+            .map((w) => ({
+                title: String(w.title || "UNTITLED"),
+                rawStart: w.startTime,
+                rawEnd: w.endTime,
+                start: w.startTime ? new Date(String(w.startTime).replace(" ", "T")) : null,
+                end: w.endTime ? new Date(String(w.endTime).replace(" ", "T")) : null
+            }))
+            .filter((w) => w.start instanceof Date && !isNaN(w.start) && w.end instanceof Date && !isNaN(w.end) && w.start < w.end);
+
+        if (!parsed.length) {
+            $container.html('<div class="text-muted small">No valid approved booking slots found.</div>');
+            return;
+        }
+
+        const dateSet = new Set();
+        parsed.forEach((w) => {
+            let cursor = new Date(w.start);
+            cursor.setHours(0, 0, 0, 0);
+            const endDate = new Date(w.end);
+            endDate.setHours(0, 0, 0, 0);
+            while (cursor <= endDate) {
+                dateSet.add(formatDateKey(cursor));
+                cursor.setDate(cursor.getDate() + 1);
             }
         });
+        const dates = Array.from(dateSet).sort();
+
+        const timeRangeForDate = (start, end, dateKey) => {
+            const dayStart = new Date(`${dateKey}T00:00:00`);
+            const dayEnd = new Date(`${dateKey}T23:59:59`);
+            const from = start > dayStart ? start : dayStart;
+            const to = end < dayEnd ? end : dayEnd;
+            if (from >= to) return "";
+            return `${formatHm(from)}-${formatHm(to)}`;
+        };
+
+        const header = [
+            "<tr><th>Maintenance Window</th>",
+            ...dates.map((d) => `<th>${escapeHtml(d)}</th>`),
+            "</tr>"
+        ].join("");
+
+        const rows = parsed.map((w) => {
+            const cells = dates.map((d) => {
+                const slot = timeRangeForDate(w.start, w.end, d);
+                const cls = slot ? "slot-booked" : "slot-empty";
+                const safeTitle = escapeHtml(w.title);
+                const safeStart = escapeHtml(formatDateTime(w.rawStart));
+                const safeEnd = escapeHtml(formatDateTime(w.rawEnd));
+                const details = slot
+                    ? `Window: ${safeTitle}<br>Status: APPROVED<br>Start: ${safeStart}<br>End: ${safeEnd}`
+                    : `Slot free`;
+                return `<td class="slot-cell ${cls}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${details}">${escapeHtml(slot)}</td>`;
+            }).join("");
+            return `<tr><th>${escapeHtml(w.title)}</th>${cells}</tr>`;
+        }).join("");
+
+        $container.html(`
+          <div class="heatmap-legend small mb-2">
+            <span><i class="legend-box slot-booked"></i> Booked</span>
+            <span><i class="legend-box slot-empty"></i> Free</span>
+          </div>
+          <div class="heatmap-table-scroll">
+            <table class="booked-heatmap-table">
+              <thead>${header}</thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `);
+
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            $container.find('[data-bs-toggle="tooltip"]').each(function () {
+                new bootstrap.Tooltip(this, {container: "body", trigger: "hover focus"});
+            });
+        }
     }
 
-    function drawElementsByRegionChart(regionCounts) {
-        const entries = mapToEntries(regionCounts);
-        createOrUpdateChart("chartElementsByRegion", {
-            type: "bar",
-            data: {
-                labels: entries.map(e => e[0]),
-                datasets: [{
-                    label: "Elements",
-                    data: entries.map(e => e[1]),
-                    backgroundColor: "#20c997"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
-            }
-        });
+    function formatDateKey(dateObj) {
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const d = String(dateObj.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
+
+    function formatHm(dateObj) {
+        const hh = String(dateObj.getHours()).padStart(2, "0");
+        const mm = String(dateObj.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
     }
 
     function drawElementsByTypeChart(typeCounts) {
@@ -1056,6 +1115,11 @@ $(function () {
 
         const selected = $mwElements.val() || [];
 
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
+            return null;
+        }
+
         if (!title || !startTime || !endTime) {
             alert("Please fill Title, Start, End");
             return null;
@@ -1080,6 +1144,12 @@ $(function () {
             alert("End Time must be after Start Time");
             return null;
         }
+
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
+            return null;
+        }
+
         return {
             title: title,
             description: "",
