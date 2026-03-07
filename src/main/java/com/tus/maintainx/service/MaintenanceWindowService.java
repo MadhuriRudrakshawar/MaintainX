@@ -146,6 +146,9 @@ public class MaintenanceWindowService {
         List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
         List<String> codes = sortedElements.stream().map(NetworkElementEntity::getElementCode).toList();
         List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
+        String requestedByUsername = e.getRequestedBy() != null
+                ? e.getRequestedBy().getUsername()
+                : "UNKNOWN";
 
         String requestedByUsername = e.getRequestedBy() == null ? null : e.getRequestedBy().getUsername();
 
