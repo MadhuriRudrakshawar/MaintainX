@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String LOGIN_DENIED = "Login denied";
+    private static final String LOGIN_DENIED = "Invalid username or password";
 
     private final UserRepository userRepo;
     private final AuthenticationManager authManager;
@@ -52,7 +52,7 @@ public class AuthController {
             String role = (user.getRole() == null) ? "USER" : user.getRole().trim().toUpperCase();
             String token = jwtUtils.generateToken(user.getUsername(), role);
 
-            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), role, token, "Login Successful!!!"));
+            return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), role, token, "Login successful"));
         } catch (Exception ex) {
             return ResponseEntity.status(401)
                     .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
