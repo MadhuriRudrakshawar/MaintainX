@@ -7,7 +7,6 @@ import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
-import com.tus.maintainx.enums.ExecutionStatus;
 import com.tus.maintainx.exception.BadRequestException;
 import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.exception.OverlapException;
@@ -16,15 +15,12 @@ import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -146,6 +142,8 @@ public class MaintenanceWindowService {
         List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
         List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
 
+        String requestedByUsername = e.getRequestedBy() == null ? null : e.getRequestedBy().getUsername();
+
         return MaintenanceWindowResponseDTO.builder()
                 .id(e.getId())
                 .title(e.getTitle())
@@ -154,7 +152,7 @@ public class MaintenanceWindowService {
                 .endTime(e.getEndTime())
                 .windowStatus(e.getWindowStatus())
                 .executionStatus(e.getExecutionStatus() == null ? null : e.getExecutionStatus().name())
-                .requestedByUsername(e.getRequestedBy().getUsername())
+                .requestedByUsername(requestedByUsername)
                 .rejectionReason(e.getRejectionReason())
                 .decidedBy(e.getDecidedBy())
                 .networkElementIds(ids)
@@ -219,43 +217,5 @@ public class MaintenanceWindowService {
             throw new BadRequestException("Authenticated user not found");
         }
         return username;
-    }
-
-
-    @Transactional
-    public MaintenanceWindowResponseDTO updateExecutionStatus(Long id, ExecutionStatus newStatus) {
-
-        MaintenanceWindowEntity mw = maintenanceWindowRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found"));
-
-        if (!STATUS_APPROVED.equalsIgnoreCase(mw.getWindowStatus())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Window not approved");
-        }
-
-        ExecutionStatus current = mw.getExecutionStatus();
-
-        if (current == null) {
-            current = ExecutionStatus.PLANNED;
-        }
-
-        if (newStatus == ExecutionStatus.IN_PROGRESS) {
-            if (current != ExecutionStatus.PLANNED) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only start from PLANNED");
-            }
-            if (LocalDateTime.now().isBefore(mw.getStartTime())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot start before scheduled start time");
-            }
-            mw.setExecutionStatus(ExecutionStatus.IN_PROGRESS);
-        }
-
-        if (newStatus == ExecutionStatus.COMPLETED) {
-            if (current != ExecutionStatus.IN_PROGRESS) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can only complete from IN_PROGRESS");
-            }
-            mw.setExecutionStatus(ExecutionStatus.COMPLETED);
-        }
-
-        MaintenanceWindowEntity saved = maintenanceWindowRepository.save(mw);
-        return toResponse(saved);
     }
 }

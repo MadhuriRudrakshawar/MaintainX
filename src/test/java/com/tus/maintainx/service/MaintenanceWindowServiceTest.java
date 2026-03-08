@@ -235,6 +235,30 @@ class MaintenanceWindowServiceTest {
     }
 
     @Test
+    void getByIdWhenRequestedByNullShouldNotFail() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowEntity e = new MaintenanceWindowEntity();
+        e.setId(10L);
+        e.setTitle("Patch");
+        e.setRequestedBy(null);
+        e.setWindowStatus("PENDING");
+        e.setNetworkElements(new HashSet<>());
+
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(e));
+
+        MaintenanceWindowResponseDTO dto = service.getById(10L);
+
+        assertEquals(10L, dto.getId());
+        assertEquals("Patch", dto.getTitle());
+        assertNull(dto.getRequestedByUsername());
+    }
+
+    @Test
     void updateMWTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
