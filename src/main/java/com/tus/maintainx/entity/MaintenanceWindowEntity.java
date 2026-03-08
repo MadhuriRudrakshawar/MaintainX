@@ -1,5 +1,6 @@
 package com.tus.maintainx.entity;
 
+import com.tus.maintainx.enums.ExecutionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -41,6 +42,11 @@ public class MaintenanceWindowEntity {
 
     @Column(nullable = false, length = 25)
     private String decidedBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "execution_status", nullable = false, length = 20)
+    @Builder.Default
+    private ExecutionStatus executionStatus = ExecutionStatus.PLANNED;
 
     @ManyToOne
     @JoinColumn(name = "requested_by")

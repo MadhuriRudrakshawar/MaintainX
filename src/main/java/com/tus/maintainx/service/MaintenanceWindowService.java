@@ -146,6 +146,8 @@ public class MaintenanceWindowService {
         List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
         List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
 
+        String requestedByUsername = e.getRequestedBy() == null ? null : e.getRequestedBy().getUsername();
+
         return MaintenanceWindowResponseDTO.builder()
                 .id(e.getId())
                 .title(e.getTitle())
@@ -153,7 +155,8 @@ public class MaintenanceWindowService {
                 .startTime(e.getStartTime())
                 .endTime(e.getEndTime())
                 .windowStatus(e.getWindowStatus())
-                .requestedByUsername(e.getRequestedBy().getUsername())
+                .executionStatus(e.getExecutionStatus() == null ? null : e.getExecutionStatus().name())
+                .requestedByUsername(requestedByUsername)
                 .rejectionReason(e.getRejectionReason())
                 .decidedBy(e.getDecidedBy())
                 .networkElementIds(ids)

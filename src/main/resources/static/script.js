@@ -17,11 +17,16 @@ $(function () {
         const url = settings && settings.url ? String(settings.url) : "";
         const authEndpoint = url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/logout");
 
-        if (xhr && (xhr.status === 401 || xhr.status === 403) && !authEndpoint) {
+        if (xhr && xhr.status === 401 && !authEndpoint) {
             clearSessionData();
             hideAllRolePages();
             showLogin();
             alert("Session expired. Please login again.");
+            return;
+        }
+
+        if (xhr && xhr.status === 403 && !authEndpoint) {
+            alert(errMsg(xhr) || "Action not allowed");
         }
     });
 
@@ -110,7 +115,7 @@ $(function () {
         pageLength: 5,
         lengthChange: false,
         rowId: "id",
-        columnDefs: [{orderable: false, targets: 5}],
+        columnDefs: [{orderable: false, targets: 6}],
         columns: [
             {data: "title", render: (v) => escapeHtml(v || "")},
             {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
@@ -127,11 +132,15 @@ $(function () {
                 }
             },
             {
+                data: "executionStatus",
+                render: (v, _t, row) => {
+                    const effective = deriveExecutionStatus(row);
+                    return effective ? makeExecutionBadge(effective) : "";
+                }
+            },
+            {
                 data: "id",
-                render: (id) => `
-          <button class="btn btn-outline-primary btn-sm js-mw-edit" data-id="${id}">Edit</button>
-          <button class="btn btn-outline-danger btn-sm js-mw-delete" data-id="${id}">Delete</button>
-        `
+                render: (id, _t, row) => mwActionsHtml(id, row)
             }
         ]
     });
@@ -232,7 +241,7 @@ $(function () {
         $addWindowPanel.collapse("show");
     });
 
-    // ===================== Approver Actions (Approve/Reject) =====================
+// ===================== Approver Actions (Approve/Reject) =====================
     $pendingMwTableEl.on("click", ".js-approve", function () {
         const id = Number($(this).data("id"));
         if (!id) return;
@@ -292,7 +301,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done((updated) => {
-                    table.row("#" + updated.id).data(updated).draw(false);
+                    table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
                     clearForm();
                     $saveElementBtn.removeData("editId");
                     $addElementPanel.collapse("hide");
@@ -341,7 +350,7 @@ $(function () {
             method: "PATCH"
         })
             .done((updated) => {
-                table.row("#" + updated.id).data(updated).draw(false);
+                table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
             })
             .fail((xhr) => {
                 alert(errMsg(xhr) || "Status update failed");
@@ -533,7 +542,43 @@ $(function () {
     `;
     }
 
-    // ===== MW Helpers =====
+
+    function makeExecutionBadge(status) {
+        const s = String(status || "").toUpperCase();
+        if (s === "COMPLETED") return '<span class="badge text-bg-success">COMPLETED</span>';
+        if (s === "IN_PROGRESS") return '<span class="badge text-bg-warning">IN_PROGRESS</span>';
+        if (s === "PLANNED") return '<span class="badge text-bg-secondary">PLANNED</span>';
+        return "";
+    }
+
+    function deriveExecutionStatus(row) {
+        const approval = String((row && row.windowStatus) || "").trim().toUpperCase();
+        if (approval !== "APPROVED") return "";
+
+        const now = Date.now();
+        const s = Date.parse(String((row && row.startTime) || ""));
+        const e = Date.parse(String((row && row.endTime) || ""));
+
+        if (isNaN(s) || isNaN(e)) return "";
+        if (now > e) return "COMPLETED";
+        if (now >= s && now <= e) return "IN_PROGRESS";
+        return "PLANNED";
+    }
+
+    function mwActionsHtml(id, row) {
+        const approval = String((row && row.windowStatus) || "").toUpperCase();
+        const canEditDelete = approval === "PENDING";
+
+        const btns = [];
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-primary js-mw-edit" data-id="${id}">Edit</button>`);
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-danger js-mw-delete" data-id="${id}">Delete</button>`);
+
+        if (!btns.length) return `<span class="text-muted">—</span>`;
+
+        return `<div class="btn-group btn-group-sm" role="group">${btns.join("")}</div>`;
+    }
+
+// ===== MW Helpers =====
     function loadNetworkElementsForMw() {
         $.get(API)
             .done((rows) => {
@@ -707,11 +752,6 @@ $(function () {
 
         const selected = $mwElements.val() || [];
 
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
-
         if (!title || !startTime || !endTime) {
             alert("Please fill Title, Start, End");
             return null;
@@ -736,12 +776,6 @@ $(function () {
             alert("End Time must be after Start Time");
             return null;
         }
-
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
-
         return {
             title: title,
             description: "",

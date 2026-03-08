@@ -48,7 +48,6 @@ class MaintenanceWindowControllerTest {
         req.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0, 0));
         req.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0, 0));
         req.setNetworkElementIds(List.of(1L, 2L));
-        req.setRequestedById(10L);
 
         MaintenanceWindowResponseDTO resp = MaintenanceWindowResponseDTO.builder()
                 .id(99L)

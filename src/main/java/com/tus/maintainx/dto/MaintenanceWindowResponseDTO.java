@@ -15,6 +15,7 @@ public class MaintenanceWindowResponseDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String windowStatus;
+    private String executionStatus;
 
     private String requestedByUsername;
     private String rejectionReason;
