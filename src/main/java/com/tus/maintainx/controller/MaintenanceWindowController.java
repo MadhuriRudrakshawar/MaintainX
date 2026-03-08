@@ -1,9 +1,6 @@
 package com.tus.maintainx.controller;
 
-import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
-import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
-import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
-import com.tus.maintainx.dto.RejectMaintenanceWindowRequestDTO;
+import com.tus.maintainx.dto.*;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
