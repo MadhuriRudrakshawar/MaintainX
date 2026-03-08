@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 
 public interface MaintenanceWindowRepository extends JpaRepository<MaintenanceWindowEntity, Long> {
 
+    boolean existsByTitle(String title);
+
 
     @Query("""
                 select (count(mw) > 0)

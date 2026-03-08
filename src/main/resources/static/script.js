@@ -119,10 +119,8 @@ $(function () {
             {
                 data: "executionStatus",
                 render: (v, _t, row) => {
-                    const derived = deriveExecutionStatus(row && row.startTime, row && row.endTime);
-                    const raw = String(v || (row && row.executionStatus) || "").trim();
-                    const effective = raw && raw.toUpperCase() !== "PLANNED" ? raw : derived;
-                    return makeExecutionBadge(effective);
+                    const effective = deriveExecutionStatus(row);
+                    return effective ? makeExecutionBadge(effective) : "";
                 }
             },
             {
@@ -199,19 +197,6 @@ $(function () {
         }
         fillMwForm(row);
         $addWindowPanel.collapse("show");
-    });
-
-
-    $mwTableEl.on("click", ".js-mw-start", function () {
-        const id = Number($(this).data("id"));
-        if (!id) return;
-        updateExecutionStatus(id, "IN_PROGRESS");
-    });
-
-    $mwTableEl.on("click", ".js-mw-complete", function () {
-        const id = Number($(this).data("id"));
-        if (!id) return;
-        updateExecutionStatus(id, "COMPLETED");
     });
 
 // ===================== Approver Actions (Approve/Reject) =====================
@@ -520,43 +505,35 @@ $(function () {
         const s = String(status || "").toUpperCase();
         if (s === "COMPLETED") return '<span class="badge text-bg-success">COMPLETED</span>';
         if (s === "IN_PROGRESS") return '<span class="badge text-bg-warning">IN_PROGRESS</span>';
-        return '<span class="badge text-bg-secondary">PLANNED</span>';
+        if (s === "PLANNED") return '<span class="badge text-bg-secondary">PLANNED</span>';
+        return "";
     }
 
-    function deriveExecutionStatus(startTimeVal, endTimeVal) {
+    function deriveExecutionStatus(row) {
+        const approval = String((row && row.windowStatus) || "").trim().toUpperCase();
+        if (approval !== "APPROVED") return "";
+
         const now = Date.now();
-        const s = Date.parse(String(startTimeVal || ""));
-        const e = Date.parse(String(endTimeVal || ""));
-        if (!isNaN(e) && now > e) return "COMPLETED";
-        if (!isNaN(s) && now >= s) return "IN_PROGRESS";
+        const s = Date.parse(String((row && row.startTime) || ""));
+        const e = Date.parse(String((row && row.endTime) || ""));
+
+        if (isNaN(s) || isNaN(e)) return "";
+        if (now > e) return "COMPLETED";
+        if (now >= s && now <= e) return "IN_PROGRESS";
         return "PLANNED";
     }
 
     function mwActionsHtml(id, row) {
         const approval = String((row && row.windowStatus) || "").toUpperCase();
-        const derived = deriveExecutionStatus(row && row.startTime, row && row.endTime);
-        const raw = String((row && row.executionStatus) || "").trim();
-        const exec = String(raw && raw.toUpperCase() !== "PLANNED" ? raw : derived).toUpperCase();
-        const startOk = approval === "APPROVED" && exec === "PLANNED" && canStartNow(row && row.startTime);
-        const completeOk = approval === "APPROVED" && exec === "IN_PROGRESS";
         const canEditDelete = approval === "PENDING";
 
         const btns = [];
-        if (startOk) btns.push(`<button class="btn btn-outline-success js-mw-start" data-id="${id}">Start</button>`);
-        if (completeOk) btns.push(`<button class="btn btn-outline-secondary js-mw-complete" data-id="${id}">Complete</button>`);
         if (canEditDelete) btns.push(`<button class="btn btn-outline-primary js-mw-edit" data-id="${id}">Edit</button>`);
         if (canEditDelete) btns.push(`<button class="btn btn-outline-danger js-mw-delete" data-id="${id}">Delete</button>`);
 
         if (!btns.length) return `<span class="text-muted">—</span>`;
 
         return `<div class="btn-group btn-group-sm" role="group">${btns.join("")}</div>`;
-    }
-
-    function canStartNow(startTimeVal) {
-        if (!startTimeVal) return true;
-        const ms = Date.parse(String(startTimeVal));
-        if (isNaN(ms)) return true;
-        return Date.now() >= ms;
     }
 
 // ===== MW Helpers =====
@@ -580,10 +557,7 @@ $(function () {
         $.get(MW_API)
             .done((rows) => {
                 mwCache.clear();
-                rows.forEach((w) => {
-                    if (!w.executionStatus) w.executionStatus = deriveExecutionStatus(w.startTime, w.endTime);
-                    mwCache.set(Number(w.id), w);
-                });
+                rows.forEach((w) => mwCache.set(Number(w.id), w));
                 mwTable.clear().rows.add(rows).draw();
             })
             .fail((xhr) => {
@@ -675,36 +649,6 @@ $(function () {
             })
             .fail((xhr) => {
                 alert(errMsg(xhr) || "Reject failed");
-                console.log(xhr.responseText);
-            });
-    }
-
-
-    function updateExecutionStatus(id, status) {
-        $.ajax({
-            url: `${MW_API}/${id}/execution-status`,
-            method: "PATCH",
-            contentType: "application/json",
-            data: JSON.stringify({status: status})
-        })
-            .done((updated) => {
-                const current = mwCache.get(Number(id)) || {};
-                const merged = Object.assign({}, current, updated || {});
-                mwCache.set(Number(id), merged);
-
-                const dtRow = mwTable.row("#" + $.escapeSelector(String(id)));
-                if (dtRow && dtRow.data()) {
-                    const d = dtRow.data();
-                    const newData = Object.assign({}, d, updated || {});
-                    dtRow.data(newData).draw(false);
-                } else loadMaintenanceWindows();
-            })
-            .fail((xhr) => {
-                if (xhr && xhr.status === 403) {
-                    alert(errMsg(xhr) || "Action not allowed");
-                    return;
-                }
-                alert(errMsg(xhr) || "Execution status update failed");
                 console.log(xhr.responseText);
             });
     }
