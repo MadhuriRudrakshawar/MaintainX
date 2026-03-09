@@ -1,0 +1,4 @@
+#addElementPanel.collapsing,
+#addWindowPanel.collapsing {
+    transition: none !important;
+}

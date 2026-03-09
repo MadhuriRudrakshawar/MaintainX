@@ -3,6 +3,8 @@ package com.tus.maintainx.service;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
+import com.tus.maintainx.enums.AuditAction;
+import com.tus.maintainx.enums.AuditEntityType;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ import java.util.List;
 public class NetworkElementService {
 
     private final NetworkElementRepository networkElementRepository;
+    private final AuditService auditService;
 
     public NetworkElementResponseDTO create(NetworkElementCreateDTO dto) {
 
@@ -26,17 +29,27 @@ public class NetworkElementService {
         e.setRegion(dto.getRegion().trim());
         e.setStatus(dto.getStatus());
 
-        NetworkElementEntity networkElementEntity = networkElementRepository.save(e);
+        NetworkElementEntity saved = networkElementRepository.save(e);
 
-        return toDto(networkElementEntity);
+        auditService.log(
+                AuditEntityType.NETWORK_ELEMENT,
+                saved.getId(),
+                AuditAction.CREATED,
+                "Network element created: " + saved.getElementCode()
+        );
 
+        return toDto(saved);
     }
 
     private NetworkElementResponseDTO toDto(NetworkElementEntity networkElementEntity) {
         return new NetworkElementResponseDTO(
-                networkElementEntity.getId(), networkElementEntity.getElementCode(),
-                networkElementEntity.getName(), networkElementEntity.getElementType(),
-                networkElementEntity.getRegion(), networkElementEntity.getStatus());
+                networkElementEntity.getId(),
+                networkElementEntity.getElementCode(),
+                networkElementEntity.getName(),
+                networkElementEntity.getElementType(),
+                networkElementEntity.getRegion(),
+                networkElementEntity.getStatus()
+        );
     }
 
     public List<NetworkElementResponseDTO> getAll() {
@@ -49,7 +62,6 @@ public class NetworkElementService {
                         HttpStatus.NOT_FOUND,
                         "Network element not found with id=" + id
                 ));
-
     }
 
     public NetworkElementResponseDTO update(Long id, NetworkElementCreateDTO dto) {
@@ -61,8 +73,17 @@ public class NetworkElementService {
         existing.setElementType(dto.getElementType().trim());
         existing.setRegion(dto.getRegion().trim());
         existing.setStatus(dto.getStatus());
-        return toDto(networkElementRepository.save(existing));
 
+        NetworkElementEntity saved = networkElementRepository.save(existing);
+
+        auditService.log(
+                AuditEntityType.NETWORK_ELEMENT,
+                saved.getId(),
+                AuditAction.UPDATED,
+                "Network element updated: " + saved.getElementCode()
+        );
+
+        return toDto(saved);
     }
 
     public NetworkElementResponseDTO deactivate(Long id) {
@@ -70,8 +91,16 @@ public class NetworkElementService {
 
         existing.setStatus("DEACTIVE");
 
-        return toDto(networkElementRepository.save(existing));
+        NetworkElementEntity saved = networkElementRepository.save(existing);
 
+        auditService.log(
+                AuditEntityType.NETWORK_ELEMENT,
+                saved.getId(),
+                AuditAction.DEACTIVATED,
+                "Network element deactivated: " + saved.getElementCode()
+        );
+
+        return toDto(saved);
     }
 
     public NetworkElementResponseDTO activate(Long id) {
@@ -79,17 +108,28 @@ public class NetworkElementService {
 
         existing.setStatus("ACTIVE");
 
-        return toDto(networkElementRepository.save(existing));
+        NetworkElementEntity saved = networkElementRepository.save(existing);
 
+        auditService.log(
+                AuditEntityType.NETWORK_ELEMENT,
+                saved.getId(),
+                AuditAction.ACTIVATED,
+                "Network element activated: " + saved.getElementCode()
+        );
+
+        return toDto(saved);
     }
 
     public void delete(Long id) {
-        if (!networkElementRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Network element not found with id=" + id
-            );
-        }
+        NetworkElementEntity existing = getById(id);
+
+        auditService.log(
+                AuditEntityType.NETWORK_ELEMENT,
+                existing.getId(),
+                AuditAction.DELETED,
+                "Network element deleted: " + existing.getElementCode()
+        );
+
         networkElementRepository.deleteById(id);
     }
 

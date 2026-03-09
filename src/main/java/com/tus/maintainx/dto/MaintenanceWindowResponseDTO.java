@@ -24,5 +24,6 @@ public class MaintenanceWindowResponseDTO {
     private LocalDateTime decidedAt;
 
     private List<Long> networkElementIds;
+    private List<String> networkElementCodes;
     private List<String> networkElementNames;
 }

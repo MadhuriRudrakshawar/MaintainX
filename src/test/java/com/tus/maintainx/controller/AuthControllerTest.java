@@ -61,7 +61,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.username").value("engineer1"))
                 .andExpect(jsonPath("$.role").value("ENGINEER"))
                 .andExpect(jsonPath("$.token").value("jwt-token"))
-                .andExpect(jsonPath("$.message").value("Login Successful!!!"));
+                .andExpect(jsonPath("$.message").value("Login successful"));
     }
 
     @Test
@@ -70,11 +70,11 @@ class AuthControllerTest {
 
         when(authManager.authenticate(any())).thenThrow(new RuntimeException("bad creds"));
 
-        mvc.perform(post("/api/v1/auth/login")
+                mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Login denied"));
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
 
     @Test

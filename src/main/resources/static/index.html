@@ -13,6 +13,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <link href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
 </head>
 
 <body class="p-4">
@@ -43,13 +44,20 @@
 
     <!-- ===================== ADMIN PAGE ===================== -->
     <div class="d-none" id="adminPage">
+        <div class="alert alert-info mb-3">Admin Dashboard</div>
 
-        <button aria-controls="addElementPanel" aria-expanded="false"
-                class="btn btn-primary btn-sm"
-                data-bs-target="#addElementPanel"
-                data-bs-toggle="collapse" type="button">
-            <i class="bi bi-plus-lg me-1"></i> Add Network Element
-        </button>
+        <div class="d-flex gap-2 align-items-center">
+            <button aria-controls="addElementPanel" aria-expanded="false"
+                    class="btn btn-primary btn-sm"
+                    data-bs-target="#addElementPanel"
+                    data-bs-toggle="collapse" type="button">
+                <i class="bi bi-plus-lg me-1"></i> Add Network Element
+            </button>
+
+            <button class="btn btn-outline-dark btn-sm" id="adminAuditBtn" type="button">
+                <i class="bi bi-journal-text me-1"></i> Audit Log
+            </button>
+        </div>
 
         <div class="d-flex justify-content-center">
             <div class="col-12 col-md-6 col-lg-4">
@@ -128,13 +136,13 @@
             </div>
         </div>
 
-        <div class="container mt-4 px-0">
+        <div class="container mt-4 px-0" id="neTableSection">
             <h6 class="mb-2">Network Elements</h6>
-            <table class="table table-striped table-sm" id="neTable">
+            <table class="table table-striped table-sm align-middle w-100" id="neTable">
                 <thead>
                 <tr>
                     <th>Code</th>
-                    <th>Name</th>
+                    <th>Network Element Name</th>
                     <th>Type</th>
                     <th>Region</th>
                     <th>Status</th>
@@ -150,18 +158,23 @@
     <!-- ===================== APPROVER PAGE ===================== -->
     <div class="d-none" id="approverPage">
         <div class="alert alert-info mb-3">Approver Dashboard - Pending Requests</div>
+        <div class="d-flex gap-2 align-items-center mb-3">
+            <button class="btn btn-outline-dark btn-sm" id="approverAuditBtn" type="button">
+                <i class="bi bi-journal-text me-1"></i> Audit Log
+            </button>
+        </div>
 
         <div class="container px-0">
-            <table class="table table-striped table-sm" id="pendingMwTable">
+            <table class="table table-striped table-sm align-middle w-100" id="pendingMwTable">
                 <thead>
                 <tr>
                     <th>Title</th>
                     <th>Engineer</th>
-                    <th>Elements</th>
+                    <th>Network Elements</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Status</th>
-                    <th style="min-width: 190px;">Actions</th>
+                    <th>Approval Status</th>
+                    <th style="min-width: 130px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
@@ -194,10 +207,13 @@
                 </div>
             </div>
         </div>
+
+
     </div>
 
     <!-- ===================== ENGINEER PAGE ===================== -->
     <div class="d-none" id="engineerPage">
+        <div class="alert alert-info mb-3"> Engineer Dashboard</div>
 
 
         <button aria-controls="addWindowPanel" aria-expanded="false"
@@ -256,22 +272,76 @@
             </div>
         </div>
 
-        <div class="container mt-4 px-0">
+        <div class="container mt-4 px-0" id="mwTableSection">
             <h6 class="mb-2">Maintenance Windows</h6>
-            <table class="table table-striped table-sm" id="mwTable">
+            <table class="table table-striped table-sm align-middle w-100" id="mwTable">
                 <thead>
                 <tr>
+                    <th>MW Number</th>
                     <th>Title</th>
-                    <th>Elements</th>
+                    <th>Network Elements</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Approval</th>
-                    <th>Execution</th>
-                    <th style="min-width: 240px;">Actions</th>
+                    <th>Approval Status</th>
+                    <th class="text-nowrap">Execution Status</th>
+                    <th style="min-width: 130px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ===================== AUDIT LOG MODAL (Admin + Approver) ===================== -->
+    <div aria-hidden="true" aria-labelledby="auditModalLabel" class="modal fade" id="auditModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="auditModalLabel">
+                        <i class="bi bi-journal-text me-2"></i> Audit Log
+                    </h5>
+                    <button aria-label="Close" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            type="button"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="alert alert-light border small mb-3">
+                        <div class="fw-semibold mb-1">Read-only activity history</div>
+                        <div class="text-muted">
+                            This log shows actions performed on both Network Elements and Maintenance Windows.
+                            Entries are displayed in time order and cannot be edited or deleted.
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-bordered table-sm align-middle w-100 mb-0"
+                               id="auditTable">
+                            <thead class="table-dark">
+                            <tr>
+                                <th class="text-nowrap">Time</th>
+                                <th class="text-nowrap">Entity Type</th>
+                                <th class="text-nowrap">Entity ID</th>
+                                <th class="text-nowrap">Action</th>
+                                <th class="text-nowrap">Username</th>
+                                <th class="text-nowrap">Role</th>
+                                <th>Details</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" type="button">
+                        Close
+                    </button>
+                </div>
+
+            </div>
         </div>
     </div>
 
@@ -280,7 +350,6 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
-    <!-- Bootstrap bundle is needed for collapse to work -->
     <script crossorigin="anonymous"
             src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
