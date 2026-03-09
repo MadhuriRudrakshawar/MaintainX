@@ -1,14 +1,18 @@
 package com.tus.maintainx.repository;
 
 
-import com.tus.maintainx.entity.AuditLog;
+import com.tus.maintainx.entity.AuditLogEntity;
+import com.tus.maintainx.enums.AuditEntityType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+public interface AuditLogRepository extends JpaRepository<AuditLogEntity, Long> {
 
-    @EntityGraph(attributePaths = "maintenanceWindow")
-    List<AuditLog> findAllByOrderByCreatedAtAsc();
+    List<AuditLogEntity> findAllByOrderByCreatedAtDesc();
+
+    List<AuditLogEntity> findByEntityTypeOrderByCreatedAtDesc(AuditEntityType entityType);
+
+    List<AuditLogEntity> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(AuditEntityType entityType, Long entityId);
 }
+

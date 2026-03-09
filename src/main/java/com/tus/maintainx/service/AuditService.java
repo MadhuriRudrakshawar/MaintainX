@@ -1,93 +1,115 @@
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.AuditLogResponseDTO;
-import com.tus.maintainx.entity.AuditLog;
-import com.tus.maintainx.entity.MaintenanceWindowEntity;
+import com.tus.maintainx.entity.AuditLogEntity;
+import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.enums.AuditAction;
-import com.tus.maintainx.exception.NotFoundException;
+import com.tus.maintainx.enums.AuditEntityType;
+import com.tus.maintainx.exception.BadRequestException;
 import com.tus.maintainx.repository.AuditLogRepository;
-import com.tus.maintainx.repository.MaintenanceWindowRepository;
+import com.tus.maintainx.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AuditService {
 
     private final AuditLogRepository auditLogRepository;
-    private final MaintenanceWindowRepository maintenanceWindowRepository;
+    private final UserRepository userRepository;
 
-    public AuditService(AuditLogRepository auditLogRepository,
-                        MaintenanceWindowRepository maintenanceWindowRepository) {
-        this.auditLogRepository = auditLogRepository;
-        this.maintenanceWindowRepository = maintenanceWindowRepository;
+
+    public void log(Long entityId, AuditAction action, String details) {
+        log(AuditEntityType.MAINTENANCE_WINDOW, entityId, action, details);
     }
 
-    public void log(Long maintenanceWindowId, AuditAction action, String details) {
+    
+    public void log(AuditEntityType entityType, Long entityId, AuditAction action, String details) {
+        String username = getAuthenticatedUsername();
 
-        MaintenanceWindowEntity mw = maintenanceWindowRepository.findById(maintenanceWindowId)
-                .orElseThrow(() -> new NotFoundException("Maintenance window not found: " + maintenanceWindowId));
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = (auth != null && auth.getName() != null) ? auth.getName() : "SYSTEM";
-
-        String role = "UNKNOWN";
-        if (auth != null) {
-            role = auth.getAuthorities().stream()
-                    .findFirst()
-                    .map(GrantedAuthority::getAuthority)
-                    .orElse("UNKNOWN");
+        UserEntity user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new BadRequestException("Authenticated user not found in database: " + username);
         }
 
-        AuditLog log = new AuditLog();
-        log.setMaintenanceWindow(mw);
-        log.setAction(action);
-        log.setActorUsername(username);
-        log.setActorRole(role);
-        log.setDetails(details);
+        String roleName = "";
+        if (user.getRole() != null) {
+            roleName = user.getRole();
+        }
+
+        AuditLogEntity log = AuditLogEntity.builder()
+                .entityType(entityType)
+                .entityId(entityId)
+                .action(action)
+                .username(username)
+                .roleName(roleName)
+                .details(details)
+                .createdAt(LocalDateTime.now())
+                .build();
 
         auditLogRepository.save(log);
     }
 
-    public List<AuditLogResponseDTO> getAllLogs() {
-        List<AuditLogResponseDTO> logs = auditLogRepository
-                .findAllByOrderByCreatedAtAsc()
+    public List<AuditLogResponseDTO> getAll() {
+        return auditLogRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(this::toResponseDto)
-                .toList();
-
-        if (!logs.isEmpty()) {
-            return logs;
-        }
-
-        return maintenanceWindowRepository.findAll()
-                .stream()
-                .map(w -> new AuditLogResponseDTO(
-                        w.getId(),
-                        w.getTitle(),
-                        AuditAction.SUBMITTED,
-                        w.getRequestedBy() != null
-                                ? w.getRequestedBy().getRole() + "(" + w.getRequestedBy().getUsername() + ")"
-                                : "UNKNOWN(UNKNOWN)",
-                        w.getWindowStatus(),
-                        w.getStartTime(),
-                        w.getEndTime()
-                ))
+                .map(this::toDto)
                 .toList();
     }
 
-    private AuditLogResponseDTO toResponseDto(AuditLog x) {
-        return new AuditLogResponseDTO(
-                x.getId(),
-                x.getMaintenanceWindow().getTitle(),
-                x.getAction(),
-                x.getActorRole() + "(" + x.getActorUsername() + ")",
-                x.getMaintenanceWindow().getWindowStatus(),
-                x.getMaintenanceWindow().getStartTime(),
-                x.getMaintenanceWindow().getEndTime()
-        );
+    public List<AuditLogResponseDTO> getByEntityType(String entityType) {
+        AuditEntityType type = parseEntityType(entityType);
+
+        return auditLogRepository.findByEntityTypeOrderByCreatedAtDesc(type)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    public List<AuditLogResponseDTO> getByEntity(String entityType, Long entityId) {
+        AuditEntityType type = parseEntityType(entityType);
+
+        return auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(type, entityId)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    private AuditLogResponseDTO toDto(AuditLogEntity e) {
+        return AuditLogResponseDTO.builder()
+                .id(e.getId())
+                .entityType(e.getEntityType().name())
+                .entityId(e.getEntityId())
+                .action(e.getAction().name())
+                .username(e.getUsername())
+                .roleName(e.getRoleName())
+                .details(e.getDetails())
+                .createdAt(e.getCreatedAt())
+                .build();
+    }
+
+    private AuditEntityType parseEntityType(String value) {
+        try {
+            return AuditEntityType.valueOf(value.trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new BadRequestException("Invalid entityType: " + value);
+        }
+    }
+
+    private String getAuthenticatedUsername() {
+        SecurityContext context = SecurityContextHolder.getContext();
+        Authentication authentication = context.getAuthentication();
+        String username = authentication != null ? authentication.getName() : null;
+
+        if (username == null || username.isBlank()) {
+            throw new BadRequestException("Authenticated user not found");
+        }
+        return username;
     }
 }

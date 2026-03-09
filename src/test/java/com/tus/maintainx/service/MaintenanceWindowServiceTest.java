@@ -240,7 +240,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo);
+        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
 
         MaintenanceWindowEntity e = new MaintenanceWindowEntity();
         e.setId(10L);

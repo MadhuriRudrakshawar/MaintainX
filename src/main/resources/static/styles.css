@@ -1,10 +1,4 @@
-#auditTable {
-    table-layout: fixed;
-    width: 100% !important;
-}
-
-#auditTable th,
-#auditTable td {
-    white-space: normal !important;
-    word-break: break-word;
+#addElementPanel.collapsing,
+#addWindowPanel.collapsing {
+    transition: none !important;
 }

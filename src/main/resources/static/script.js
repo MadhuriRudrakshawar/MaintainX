@@ -46,6 +46,7 @@ $(function () {
 
     const $addElementPanel = $("#addElementPanel");
     const $saveElementBtn = $("#saveElementBtn");
+    const $neTableSection = $("#neTableSection");
 
     const $adminAuditBtn = $("#adminAuditBtn");
     const $approverAuditBtn = $("#approverAuditBtn");
@@ -65,6 +66,7 @@ $(function () {
 
     const $addWindowPanel = $("#addWindowPanel");
     const $saveWindowBtn = $("#saveWindowBtn");
+    const $mwTableSection = $("#mwTableSection");
 
     const $mwId = $("#mwId");
     const $mwTitle = $("#mwTitle");
@@ -97,32 +99,48 @@ $(function () {
 
     // ===================== DataTables =====================
     const table = $neTableEl.DataTable({
+        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
         pageLength: 5,
-        lengthChange: false,
+        lengthChange: true,
+        lengthMenu: [[5, 10, 20], [5, 10, 20]],
+        scrollY: "320px",
+        scrollCollapse: true,
+        autoWidth: false,
         rowId: "id",
         columnDefs: [{orderable: false, targets: 5}],
         columns: [
-            {data: "elementCode"},
-            {data: "name"},
-            {data: "elementType"},
-            {data: "region"},
-            {data: "status", render: (v) => makeStatusBadge(v)},
-            {data: null, render: () => actionsHtml()}
+            {data: "elementCode", width: "14%"},
+            {data: "name", width: "24%"},
+            {data: "elementType", width: "16%"},
+            {data: "region", width: "14%"},
+            {data: "status", width: "12%", render: (v) => makeStatusBadge(v)},
+            {data: null, width: "20%", render: () => actionsHtml()}
         ]
     });
 
     const mwTable = $mwTableEl.DataTable({
+        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
         pageLength: 5,
-        lengthChange: false,
+        lengthChange: true,
+        lengthMenu: [[5, 10, 20], [5, 10, 20]],
+        scrollY: "320px",
+        scrollCollapse: true,
+        autoWidth: false,
         rowId: "id",
-        columnDefs: [{orderable: false, targets: 6}],
+        columnDefs: [{orderable: false, targets: 7}],
         columns: [
-            {data: "title", render: (v) => escapeHtml(v || "")},
-            {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
-            {data: "startTime", render: (v) => escapeHtml(formatDateTime(v))},
-            {data: "endTime", render: (v) => escapeHtml(formatDateTime(v))},
+            {data: "id", width: "8%", render: (v) => escapeHtml(formatMwNumber(v))},
+            {data: "title", width: "18%", render: (v) => escapeHtml(v || "")},
+            {
+                data: "networkElementNames",
+                width: "22%",
+                render: (v) => renderNetworkElements(v)
+            },
+            {data: "startTime", width: "12%", render: (v) => escapeHtml(formatDateTime(v))},
+            {data: "endTime", width: "12%", render: (v) => escapeHtml(formatDateTime(v))},
             {
                 data: "windowStatus",
+                width: "12%",
                 render: (v, _t, row) => {
                     const st = String(v || "");
                     if (st.toUpperCase() === "REJECTED" && row && row.rejectionReason) {
@@ -133,6 +151,7 @@ $(function () {
             },
             {
                 data: "executionStatus",
+                width: "1%",
                 render: (v, _t, row) => {
                     const effective = deriveExecutionStatus(row);
                     return effective ? makeExecutionBadge(effective) : "";
@@ -140,6 +159,7 @@ $(function () {
             },
             {
                 data: "id",
+                width: "18%",
                 render: (id, _t, row) => mwActionsHtml(id, row)
             }
         ]
@@ -150,19 +170,24 @@ $(function () {
 
     if ($pendingMwTableEl.length) {
         pendingMwTable = $pendingMwTableEl.DataTable({
+            dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
             pageLength: 5,
-            lengthChange: false,
+            lengthChange: true,
+            lengthMenu: [[5, 10, 20], [5, 10, 20]],
+            scrollY: "320px",
+            scrollCollapse: true,
+            autoWidth: false,
             rowId: "id",
             columnDefs: [{orderable: false, targets: 6}],
             columns: [
-                {data: "title", render: (v) => escapeHtml(v || "")},
-                {data: "requestedByUsername", render: (v) => escapeHtml(v || "")},
-                {data: "networkElementNames", render: (v) => escapeHtml((v || []).join(", "))},
-                {data: "startTime", render: (v) => escapeHtml(formatDateTime(v))},
-                {data: "endTime", render: (v) => escapeHtml(formatDateTime(v))},
-                {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+                {data: "title", width: "20%", render: (v) => escapeHtml(v || "")},
+                {data: "requestedByUsername", width: "12%", render: (v) => escapeHtml(v || "")},
+                {data: "networkElementNames", width: "24%", render: (v) => renderNetworkElements(v)},
+                {data: "startTime", width: "13%", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "endTime", width: "13%", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "windowStatus", width: "12%", render: (v) => escapeHtml(v || "")},
                 {
-                    data: "id", render: (id) => `
+                    data: "id", width: "6%", render: (id) => `
       <button class="btn btn-success btn-sm js-approve" data-id="${id}">Approve</button>
       <button class="btn btn-danger btn-sm js-reject" data-id="${id}">Reject</button>
     `
@@ -177,17 +202,25 @@ $(function () {
 
     if ($auditTableEl.length) {
         auditTable = $auditTableEl.DataTable({
-            pageLength: 8,
-            lengthChange: false,
+            dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
+            pageLength: 5,
+            lengthChange: true,
+            lengthMenu: [[5, 10, 20], [5, 10, 20]],
+            scrollY: "320px",
+            scrollCollapse: true,
             ordering: true,
-            order: [[0, "asc"]],
+            order: [[0, "desc"]],
             columns: [
-                {data: "maintenanceWindowName", render: (v) => escapeHtml(v || "")},
-                {data: "usernameRole", render: (v) => escapeHtml(v || "")},
-                {data: "windowStatus", render: (v) => escapeHtml(v || "")},
+                {data: "createdAt", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "entityType", render: (v) => escapeHtml(v || "")},
+                {
+                    data: "entityId",
+                    render: (v, _t, row) => escapeHtml(formatAuditEntityId(row && row.entityType, v))
+                },
                 {data: "action", render: (v) => escapeHtml(v || "")},
-                {data: "startDuration", render: (v) => escapeHtml(formatDateTime(v))},
-                {data: "endDuration", render: (v) => escapeHtml(formatDateTime(v))}
+                {data: "username", render: (v) => escapeHtml(v || "")},
+                {data: "roleName", render: (v) => escapeHtml(v || "")},
+                {data: "details", render: (v) => escapeHtml(v || "")}
             ]
         });
     }
@@ -224,6 +257,13 @@ $(function () {
     $saveWindowBtn.on("click", createMaintenanceWindow);
 
     $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
+
+    $addWindowPanel.on("shown.bs.collapse", function () {
+        $mwTableSection.addClass("d-none");
+    });
+    $addWindowPanel.on("hidden.bs.collapse", function () {
+        $mwTableSection.removeClass("d-none");
+    });
 
     $mwTableEl.on("click", ".js-mw-delete", function () {
         const id = $(this).data("id");
@@ -287,6 +327,13 @@ $(function () {
     });
 
     // ===================== Network Element Events =====================
+    $addElementPanel.on("shown.bs.collapse", function () {
+        $neTableSection.addClass("d-none");
+    });
+    $addElementPanel.on("hidden.bs.collapse", function () {
+        $neTableSection.removeClass("d-none");
+    });
+
     $saveElementBtn.on("click", function () {
         const payload = readForm();
         if (!payload) return;
@@ -318,7 +365,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done((created) => {
-                    table.row.add(created).draw(false);
+                    loadAll();
                     clearForm();
                     $addElementPanel.collapse("hide");
                 })
@@ -345,17 +392,24 @@ $(function () {
         const isActive = String(data.status).toUpperCase() === "ACTIVE";
         const endpoint = isActive ? "deactivate" : "activate";
 
-        $.ajax({
-            url: `${API}/${data.id}/${endpoint}`,
-            method: "PATCH"
-        })
-            .done((updated) => {
-                table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
-            })
-            .fail((xhr) => {
-                alert(errMsg(xhr) || "Status update failed");
-                console.log(xhr.responseText);
-            });
+        if (isActive) {
+            canDeactivateNetworkElement(data.id)
+                .done((result) => {
+                    if (!result.allowed) {
+                        const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                        alert(`Network element is already in use in "${mwName}".`);
+                        return;
+                    }
+                    patchElementStatus(data.id, endpoint);
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Unable to validate schedule usage");
+                    console.log(xhr.responseText);
+                });
+            return;
+        }
+
+        patchElementStatus(data.id, endpoint);
     });
 
     $neTableEl.on("click", ".js-delete", function () {
@@ -420,7 +474,7 @@ $(function () {
             },
             error: function (xhr) {
                 clearSessionData();
-                alert("Login failed: " + (xhr.responseText || xhr.status));
+                alert(errMsg(xhr) || "Login failed");
                 console.log(xhr.status, xhr.responseText);
             }
         });
@@ -429,7 +483,8 @@ $(function () {
     function loadAll() {
         $.get(API)
             .done((rows) => {
-                table.clear().rows.add(rows).draw();
+                const sorted = (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+                table.clear().rows.add(sorted).draw();
             })
             .fail((xhr) => {
                 alert("Failed to load network elements");
@@ -532,6 +587,40 @@ $(function () {
             : '<span class="badge text-bg-danger">DEACTIVE</span>';
     }
 
+    function patchElementStatus(id, endpoint) {
+        $.ajax({
+            url: `${API}/${id}/${endpoint}`,
+            method: "PATCH"
+        })
+            .done((updated) => {
+                table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Status update failed");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function canDeactivateNetworkElement(elementId) {
+        return $.get(MW_API).then((rows) => {
+            const now = Date.now();
+            const blockingWindow = (rows || []).find((mw) => {
+                const status = String((mw && mw.windowStatus) || "").trim().toUpperCase();
+                if (status !== "PENDING" && status !== "APPROVED") return false;
+                const startMs = Date.parse(String((mw && mw.startTime) || ""));
+                const endMs = Date.parse(String((mw && mw.endTime) || ""));
+                if (isNaN(startMs) || isNaN(endMs)) return false;
+                if (endMs < now) return false;
+                const ids = (mw && mw.networkElementIds) || [];
+                return Array.isArray(ids) && ids.includes(Number(elementId));
+            });
+            return {
+                allowed: !blockingWindow,
+                window: blockingWindow || null
+            };
+        });
+    }
+
     function actionsHtml() {
         return `
       <div class="btn-group btn-group-sm" role="group">
@@ -578,16 +667,27 @@ $(function () {
         return `<div class="btn-group btn-group-sm" role="group">${btns.join("")}</div>`;
     }
 
+    function renderNetworkElements(values) {
+        const list = Array.isArray(values) ? values : [];
+        if (!list.length) return "";
+        const items = list
+            .map((name) => `<span class="text-break">${escapeHtml(name)}</span>`)
+            .join("");
+        return `<div class="d-flex flex-column gap-1">${items}</div>`;
+    }
+
 // ===== MW Helpers =====
     function loadNetworkElementsForMw() {
         $.get(API)
             .done((rows) => {
                 $mwElements.empty();
-                rows.forEach((ne) => {
-                    const code = ne.elementCode || "";
-                    const name = ne.name || "";
-                    $mwElements.append(`<option value="${ne.id}">${code} - ${name}</option>`);
-                });
+                (rows || [])
+                    .filter((ne) => String((ne && ne.status) || "").trim().toUpperCase() === "ACTIVE")
+                    .forEach((ne) => {
+                        const code = ne.elementCode || "";
+                        const name = ne.name || "";
+                        $mwElements.append(`<option value="${ne.id}">${code} - ${name}</option>`);
+                    });
             })
             .fail((xhr) => {
                 alert("Failed to load network elements");
@@ -598,9 +698,10 @@ $(function () {
     function loadMaintenanceWindows() {
         $.get(MW_API)
             .done((rows) => {
+                const sorted = (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
                 mwCache.clear();
-                rows.forEach((w) => mwCache.set(Number(w.id), w));
-                mwTable.clear().rows.add(rows).draw();
+                sorted.forEach((w) => mwCache.set(Number(w.id), w));
+                mwTable.clear().rows.add(sorted).draw();
             })
             .fail((xhr) => {
                 alert("Failed to load maintenance windows");
@@ -654,7 +755,9 @@ $(function () {
 
         $.get(MW_API)
             .done((rows) => {
-                const pending = (rows || []).filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING");
+                const pending = (rows || [])
+                    .filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING")
+                    .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
                 pendingMwTable.clear().rows.add(pending).draw();
             })
             .fail((xhr) => {
@@ -680,11 +783,12 @@ $(function () {
         if (!auditTable) return;
 
         $.ajax({
-            url: `${MW_API}/audit-logs`,
+            url: "/api/v1/audit-logs",
             method: "GET"
         })
             .done((rows) => {
-                auditTable.clear().rows.add(rows || []).draw();
+                const sorted = (rows || []).slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+                auditTable.clear().rows.add(sorted).draw();
             })
             .fail((xhr) => {
                 alert(errMsg(xhr) || "Failed to load audit logs");
@@ -827,6 +931,22 @@ $(function () {
     function toSeconds(dtLocal) {
         if (!dtLocal) return dtLocal;
         return dtLocal.length === 16 ? (dtLocal + ":00") : dtLocal;
+    }
+
+    function formatMwNumber(id) {
+        const n = Number(id);
+        if (!Number.isFinite(n) || n <= 0) return "";
+        return "MW-" + String(n).padStart(2, "0");
+    }
+
+    function formatAuditEntityId(entityType, id) {
+        const n = Number(id);
+        if (!Number.isFinite(n) || n <= 0) return id == null ? "" : String(id);
+
+        const type = String(entityType || "").toUpperCase();
+        if (type === "MAINTENANCE_WINDOW") return "MW-" + String(n).padStart(2, "0");
+        if (type === "NETWORK_ELEMENT") return "NE-" + String(n).padStart(3, "0");
+        return String(n);
     }
 
     function toDateTimeLocalValueFromServer(val) {

@@ -144,6 +144,7 @@ public class MaintenanceWindowService {
                 .sorted(Comparator.comparing(NetworkElementEntity::getId))
                 .toList();
         List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
+        List<String> codes = sortedElements.stream().map(NetworkElementEntity::getElementCode).toList();
         List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
 
         String requestedByUsername = e.getRequestedBy() == null ? null : e.getRequestedBy().getUsername();
@@ -160,6 +161,7 @@ public class MaintenanceWindowService {
                 .rejectionReason(e.getRejectionReason())
                 .decidedBy(e.getDecidedBy())
                 .networkElementIds(ids)
+                .networkElementCodes(codes)
                 .networkElementNames(names)
                 .build();
     }

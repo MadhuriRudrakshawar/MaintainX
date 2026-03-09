@@ -2,7 +2,6 @@ package com.tus.maintainx.controller;
 
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.AuditLogResponseDTO;
-import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.service.AuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AuditController.class)
+@WebMvcTest(AuditLogController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuditControllerTest {
 
@@ -34,25 +33,27 @@ class AuditControllerTest {
     JwtUtils jwtUtils;
 
     @Test
-    void getAllAuditLogs_returns200AndRows() throws Exception {
+    void all_ok() throws Exception {
         AuditLogResponseDTO row = AuditLogResponseDTO.builder()
                 .id(10L)
-                .maintenanceWindowName("MW-10")
-                .action(AuditAction.APPROVED)
-                .usernameRole("ROLE_APPROVER(approver1)")
-                .windowStatus("APPROVED")
-                .startDuration(LocalDateTime.of(2026, 3, 1, 10, 0))
-                .endDuration(LocalDateTime.of(2026, 3, 1, 11, 0))
+                .entityType("MAINTENANCE_WINDOW")
+                .entityId(99L)
+                .action("APPROVED")
+                .username("approver1")
+                .roleName("APPROVER")
+                .details("Approved maintenance window")
+                .createdAt(LocalDateTime.of(2026, 3, 1, 10, 0))
                 .build();
 
-        when(auditService.getAllLogs()).thenReturn(List.of(row));
+        when(auditService.getAll()).thenReturn(List.of(row));
 
-        mockMvc.perform(get("/api/v1/maintenance-windows/audit-logs"))
+        mockMvc.perform(get("/api/v1/audit-logs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(10))
-                .andExpect(jsonPath("$[0].maintenanceWindowName").value("MW-10"))
-                .andExpect(jsonPath("$[0].usernameRole").value("ROLE_APPROVER(approver1)"));
+                .andExpect(jsonPath("$[0].entityType").value("MAINTENANCE_WINDOW"))
+                .andExpect(jsonPath("$[0].entityId").value(99))
+                .andExpect(jsonPath("$[0].action").value("APPROVED"));
 
-        verify(auditService).getAllLogs();
+        verify(auditService).getAll();
     }
 }
