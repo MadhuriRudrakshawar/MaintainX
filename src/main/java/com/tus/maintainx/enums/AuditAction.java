@@ -3,10 +3,10 @@ package com.tus.maintainx.enums;
 public enum AuditAction {
     CREATED,
     UPDATED,
-    SUBMITTED,
+    DELETED,
+    ACTIVATED,
+    DEACTIVATED,
     APPROVED,
     REJECTED,
-    STARTED,
-    COMPLETED,
     CANCELLED
 }
