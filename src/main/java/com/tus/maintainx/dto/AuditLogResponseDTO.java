@@ -1,23 +1,23 @@
 package com.tus.maintainx.dto;
 
-
-import com.tus.maintainx.enums.AuditAction;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class AuditLogResponseDTO {
-
     private Long id;
-    private String maintenanceWindowName;
-    private AuditAction action;
-    private String usernameRole;
-    private String windowStatus;
-    private LocalDateTime startDuration;
-    private LocalDateTime endDuration;
+    private String entityType;
+    private Long entityId;
+    private String action;
+    private String username;
+    private String roleName;
+    private String details;
+    private LocalDateTime createdAt;
 }
