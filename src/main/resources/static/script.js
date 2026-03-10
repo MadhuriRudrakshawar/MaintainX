@@ -670,7 +670,7 @@ $(function () {
         };
 
         const header = [
-            "<tr><th>Maintenance Window</th>",
+            "<tr><th>Maintenance Window Name</th>",
             ...dates.map((d) => `<th>${escapeHtml(d)}</th>`),
             "</tr>"
         ].join("");
@@ -744,18 +744,31 @@ $(function () {
     }
 
     function drawElementHealthChart(healthCounts) {
-        const entries = mapToEntries(healthCounts);
+        const normalizedCounts = {
+            ACTIVE: Number(healthCounts.ACTIVE || 0),
+            DEACTIVE: Number(healthCounts.DEACTIVE || 0)
+        };
+        const entries = mapToEntries(normalizedCounts);
         createOrUpdateChart("chartElementHealth", {
             type: "pie",
             data: {
-                labels: entries.map(e => e[0]),
+                labels: entries.map((e) => e[0] === "ACTIVE" ? "Active" : "Deactive"),
                 datasets: [{
                     label: "Elements",
                     data: entries.map(e => e[1]),
-                    backgroundColor: ["#198754", "#dc3545", "#6c757d"]
+                    backgroundColor: ["#198754", "#dc3545"]
                 }]
             },
-            options: {responsive: true, maintainAspectRatio: false}
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom"
+                    }
+                }
+            }
         });
     }
 

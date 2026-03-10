@@ -20,25 +20,25 @@ INSERT INTO network_element (element_code, name, element_type, region, status) V
   ('NE-003', 'Dublin Access Switch A', 'ACCESS_SWITCH', 'DUBLIN', 'ACTIVE'),
   ('NE-004', 'Dublin Aggregation Switch A', 'ACCESS_SWITCH', 'DUBLIN', 'DEACTIVE'),
   ('NE-005', 'Dublin Backbone Firewall A', 'BACKBONE_FIREWALL', 'DUBLIN', 'ACTIVE'),
-  ('NE-006', 'Cork Core Router A', 'EDGE_SWITCH', 'CORK', 'ACTIVE'),
+  ('NE-006', 'Cork Core Router A', 'EDGE_SWITCH', 'CORK', 'DEACTIVE'),
   ('NE-007', 'Cork Edge Switch A', 'EDGE_SWITCH', 'CORK', 'DEACTIVE'),
   ('NE-008', 'Cork Access Switch A', 'ACCESS_SWITCH', 'CORK', 'ACTIVE'),
   ('NE-009', 'Cork Aggregation Switch A', 'ACCESS_SWITCH', 'CORK', 'ACTIVE'),
   ('NE-010', 'Cork Backbone Firewall A', 'AGGREGATION_SWITCH', 'CORK', 'ACTIVE'),
   ('NE-011', 'Galway Core Router A', 'AGGREGATION_SWITCH', 'GALWAY', 'ACTIVE'),
-  ('NE-012', 'Galway Edge Switch A', 'EDGE_SWITCH', 'GALWAY', 'ACTIVE'),
+  ('NE-012', 'Galway Edge Switch A', 'EDGE_SWITCH', 'GALWAY', 'DEACTIVE'),
   ('NE-013', 'Galway Access Switch A', 'ACCESS_SWITCH', 'GALWAY', 'DEACTIVE'),
   ('NE-014', 'Galway Aggregation Switch A', 'ACCESS_SWITCH', 'GALWAY', 'ACTIVE'),
   ('NE-015', 'Galway Backbone Firewall A', 'AGGREGATION_SWITCH', 'GALWAY', 'ACTIVE'),
   ('NE-016', 'Donegal Core Router A', 'BACKBONE_FIREWALL', 'DONEGAL', 'ACTIVE'),
   ('NE-017', 'Donegal Edge Switch A', 'EDGE_SWITCH', 'DONEGAL', 'ACTIVE'),
-  ('NE-018', 'Donegal Access Switch A', 'ACCESS_SWITCH', 'DONEGAL', 'ACTIVE'),
+  ('NE-018', 'Donegal Access Switch A', 'ACCESS_SWITCH', 'DONEGAL', 'DEACTIVE'),
   ('NE-019', 'Donegal Aggregation Switch A', 'ACCESS_SWITCH', 'DONEGAL', 'DEACTIVE'),
   ('NE-020', 'Donegal Backbone Firewall A', 'AGGREGATION_SWITCH', 'DONEGAL', 'ACTIVE'),
   ('NE-021', 'National Core Router A', 'CORE_ROUTER', 'NATIONWIDE', 'ACTIVE'),
   ('NE-022', 'National Edge Switch A', 'EDGE_SWITCH', 'NATIONWIDE', 'ACTIVE'),
   ('NE-023', 'National Access Switch A', 'ACCESS_SWITCH', 'NATIONWIDE', 'ACTIVE'),
-  ('NE-024', 'National Aggregation Switch A', 'EDGE_SWITCH', 'NATIONWIDE', 'ACTIVE'),
+  ('NE-024', 'National Aggregation Switch A', 'EDGE_SWITCH', 'NATIONWIDE', 'DEACTIVE'),
   ('NE-025', 'National Backbone Firewall A', 'ACCESS_SWITCH', 'NATIONWIDE', 'DEACTIVE');
 
 INSERT INTO maintenance_windows
@@ -76,53 +76,53 @@ FROM (
   SELECT 'MW-01 Core Patch' AS mw_title, 'NE-001' AS ne_code UNION ALL
   SELECT 'MW-01 Core Patch', 'NE-002' UNION ALL
   SELECT 'MW-02 Edge Upgrade', 'NE-003' UNION ALL
-  SELECT 'MW-02 Edge Upgrade', 'NE-004' UNION ALL
+  SELECT 'MW-02 Edge Upgrade', 'NE-005' UNION ALL
   SELECT 'MW-03 Access Audit', 'NE-005' UNION ALL
-  SELECT 'MW-03 Access Audit', 'NE-006' UNION ALL
-  SELECT 'MW-04 Agg Tune', 'NE-007' UNION ALL
+  SELECT 'MW-03 Access Audit', 'NE-008' UNION ALL
+  SELECT 'MW-04 Agg Tune', 'NE-010' UNION ALL
   SELECT 'MW-04 Agg Tune', 'NE-008' UNION ALL
   SELECT 'MW-05 FW Rules', 'NE-009' UNION ALL
   SELECT 'MW-05 FW Rules', 'NE-010' UNION ALL
   SELECT 'MW-06 Core Sync', 'NE-011' UNION ALL
-  SELECT 'MW-06 Core Sync', 'NE-012' UNION ALL
-  SELECT 'MW-07 Edge Port', 'NE-013' UNION ALL
+  SELECT 'MW-06 Core Sync', 'NE-014' UNION ALL
+  SELECT 'MW-07 Edge Port', 'NE-011' UNION ALL
   SELECT 'MW-07 Edge Port', 'NE-014' UNION ALL
   SELECT 'MW-08 HA Test', 'NE-015' UNION ALL
   SELECT 'MW-08 HA Test', 'NE-016' UNION ALL
   SELECT 'MW-09 VLAN Check', 'NE-017' UNION ALL
-  SELECT 'MW-09 VLAN Check', 'NE-018' UNION ALL
-  SELECT 'MW-10 OS Update', 'NE-019' UNION ALL
+  SELECT 'MW-09 VLAN Check', 'NE-016' UNION ALL
+  SELECT 'MW-10 OS Update', 'NE-017' UNION ALL
   SELECT 'MW-10 OS Update', 'NE-020' UNION ALL
   SELECT 'MW-11 Kernel Patch', 'NE-021' UNION ALL
   SELECT 'MW-11 Kernel Patch', 'NE-022' UNION ALL
   SELECT 'MW-12 Security Hardening', 'NE-023' UNION ALL
-  SELECT 'MW-12 Security Hardening', 'NE-024' UNION ALL
-  SELECT 'MW-13 Cert Rotate', 'NE-025' UNION ALL
+  SELECT 'MW-12 Security Hardening', 'NE-021' UNION ALL
+  SELECT 'MW-13 Cert Rotate', 'NE-023' UNION ALL
   SELECT 'MW-13 Cert Rotate', 'NE-001' UNION ALL
   SELECT 'MW-14 PoE Tune', 'NE-002' UNION ALL
   SELECT 'MW-14 PoE Tune', 'NE-003' UNION ALL
-  SELECT 'MW-15 Telemetry', 'NE-004' UNION ALL
+  SELECT 'MW-15 Telemetry', 'NE-001' UNION ALL
   SELECT 'MW-15 Telemetry', 'NE-005' UNION ALL
-  SELECT 'MW-16 Interface Audit', 'NE-006' UNION ALL
-  SELECT 'MW-16 Interface Audit', 'NE-007' UNION ALL
+  SELECT 'MW-16 Interface Audit', 'NE-009' UNION ALL
+  SELECT 'MW-16 Interface Audit', 'NE-010' UNION ALL
   SELECT 'MW-17 QoS Update', 'NE-008' UNION ALL
   SELECT 'MW-17 QoS Update', 'NE-009' UNION ALL
   SELECT 'MW-18 Policy Review', 'NE-010' UNION ALL
   SELECT 'MW-18 Policy Review', 'NE-011' UNION ALL
-  SELECT 'MW-19 STP Review', 'NE-012' UNION ALL
-  SELECT 'MW-19 STP Review', 'NE-013' UNION ALL
+  SELECT 'MW-19 STP Review', 'NE-014' UNION ALL
+  SELECT 'MW-19 STP Review', 'NE-015' UNION ALL
   SELECT 'MW-20 Redundancy Test', 'NE-014' UNION ALL
   SELECT 'MW-20 Redundancy Test', 'NE-015' UNION ALL
   SELECT 'MW-21 Core Patch', 'NE-016' UNION ALL
   SELECT 'MW-21 Core Patch', 'NE-017' UNION ALL
-  SELECT 'MW-22 Config Cleanup', 'NE-018' UNION ALL
-  SELECT 'MW-22 Config Cleanup', 'NE-019' UNION ALL
+  SELECT 'MW-22 Config Cleanup', 'NE-017' UNION ALL
+  SELECT 'MW-22 Config Cleanup', 'NE-020' UNION ALL
   SELECT 'MW-23 DR Drill', 'NE-020' UNION ALL
   SELECT 'MW-23 DR Drill', 'NE-021' UNION ALL
   SELECT 'MW-24 Firmware Minor', 'NE-022' UNION ALL
   SELECT 'MW-24 Firmware Minor', 'NE-023' UNION ALL
-  SELECT 'MW-25 Capacity Expand', 'NE-024' UNION ALL
-  SELECT 'MW-25 Capacity Expand', 'NE-025'
+  SELECT 'MW-25 Capacity Expand', 'NE-022' UNION ALL
+  SELECT 'MW-25 Capacity Expand', 'NE-021'
 ) map_rows
 JOIN maintenance_windows mw ON mw.title = map_rows.mw_title
 JOIN network_element ne ON ne.element_code = map_rows.ne_code;
