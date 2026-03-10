@@ -74,6 +74,11 @@ class MaintenanceWindowApproverIT {
         when(jwtUtils.isValid(token)).thenReturn(true);
         when(jwtUtils.getUsername(token)).thenReturn("approver1");
         when(jwtUtils.getRole(token)).thenReturn("APPROVER");
+        UserEntity approver = new UserEntity();
+        approver.setUsername("approver1");
+        approver.setRole("APPROVER");
+        approver.setPassword("test-password");
+        when(userRepository.findByUsername("approver1")).thenReturn(approver);
 
         mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/approve", id)
                         .header("Authorization", "Bearer " + token))
@@ -106,6 +111,11 @@ class MaintenanceWindowApproverIT {
         when(jwtUtils.isValid(token)).thenReturn(true);
         when(jwtUtils.getUsername(token)).thenReturn("approver1");
         when(jwtUtils.getRole(token)).thenReturn("APPROVER");
+        UserEntity approver = new UserEntity();
+        approver.setUsername("approver1");
+        approver.setRole("APPROVER");
+        approver.setPassword("test-password");
+        when(userRepository.findByUsername("approver1")).thenReturn(approver);
 
         String body = """
                 { "reason": "Not safe now" }

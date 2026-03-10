@@ -1,7 +1,9 @@
 package com.tus.maintainx.integration;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
+import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.NetworkElementRepository;
+import com.tus.maintainx.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +34,19 @@ class NetworkElementApiIT {
     @Autowired
     NetworkElementRepository repo;
 
+    @Autowired
+    UserRepository userRepository;
+
     @BeforeEach
     void cleanDb() {
         repo.deleteAll();
+        if (userRepository.findByUsername("it-user") == null) {
+            UserEntity user = new UserEntity();
+            user.setUsername("it-user");
+            user.setRole("USER");
+            user.setPassword("test-password");
+            userRepository.save(user);
+        }
     }
 
     @Test

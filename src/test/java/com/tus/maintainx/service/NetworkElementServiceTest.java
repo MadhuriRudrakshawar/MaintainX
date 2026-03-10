@@ -3,6 +3,8 @@ package com.tus.maintainx.service;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
+import com.tus.maintainx.enums.AuditAction;
+import com.tus.maintainx.enums.AuditEntityType;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,9 @@ class NetworkElementServiceTest {
 
     @Mock
     private NetworkElementRepository repo;
+
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private NetworkElementService service;
@@ -58,6 +63,7 @@ class NetworkElementServiceTest {
         assertEquals("ACTIVE", created.getStatus());
 
         verify(repo, times(1)).save(any(NetworkElementEntity.class));
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 10L, AuditAction.CREATED, "Network element created: NE-001");
     }
 
 
@@ -74,6 +80,7 @@ class NetworkElementServiceTest {
 
         assertEquals("DEACTIVE", result.getStatus());
         verify(repo).save(existing);
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.DEACTIVATED, "Network element deactivated: NE-001");
     }
 
     @Test
@@ -89,6 +96,7 @@ class NetworkElementServiceTest {
 
         assertEquals("ACTIVE", result.getStatus());
         verify(repo).save(existing);
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.ACTIVATED, "Network element activated: NE-001");
     }
 
     @Test
@@ -144,6 +152,7 @@ class NetworkElementServiceTest {
         assertEquals("ACTIVE", updated.getStatus());
         verify(repo).findById(1L);
         verify(repo).save(existing);
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.UPDATED, "Network element updated: NE-001");
     }
 
     @Test
@@ -181,22 +190,28 @@ class NetworkElementServiceTest {
 
     @Test
     void deleteEntityNotExistedTest() {
-        when(repo.existsById(123L)).thenReturn(false);
+        when(repo.findById(123L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> service.delete(123L));
 
         assertEquals(404, ex.getStatusCode().value());
         verify(repo, never()).deleteById(anyLong());
+        verifyNoInteractions(auditService);
     }
 
     @Test
     void deleteExistedEntityTest() {
-        when(repo.existsById(5L)).thenReturn(true);
+        NetworkElementEntity existing = new NetworkElementEntity(
+                5L, "NE-005", "Access Switch", "SWITCH", "Galway", "ACTIVE"
+        );
+
+        when(repo.findById(5L)).thenReturn(Optional.of(existing));
 
         service.delete(5L);
 
         verify(repo).deleteById(5L);
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 5L, AuditAction.DELETED, "Network element deleted: NE-005");
     }
 
 
