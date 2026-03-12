@@ -71,6 +71,7 @@ $(function () {
 
     const $neTableEl = $("#neTable");
     const $mwTableEl = $("#mwTable");
+    const $mwTableSection = $("#mwTableSection");
 
     const $addWindowPanel = $("#addWindowPanel");
     const $saveWindowBtn = $("#saveWindowBtn");
@@ -264,6 +265,12 @@ $(function () {
 
     // ===================== Maintenance Window Events =====================
     $saveWindowBtn.on("click", createMaintenanceWindow);
+    $addWindowPanel.on("show.bs.collapse", function () {
+        $mwTableSection.addClass("d-none");
+    });
+    $addWindowPanel.on("hide.bs.collapse", function () {
+        $mwTableSection.removeClass("d-none");
+    });
 
     $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
 
@@ -582,7 +589,7 @@ $(function () {
         $.get(ANALYTICS_API)
             .done((dashboard) => {
                 drawMaintenanceStatusChart(dashboard.maintenanceStatusCounts || {});
-                renderApprovedWindowTimeline(dashboard.approvedWindowTimeline || []);
+                drawApprovedWindowScheduleChart(dashboard.approvedWindowTimeline || []);
                 drawElementsByTypeChart(dashboard.elementsByType || {});
                 drawElementHealthChart(dashboard.elementsByStatus || {});
                 drawApprovalTrendChart(dashboard.approvalRejectionTrend || []);
@@ -621,100 +628,6 @@ $(function () {
             },
             options: {responsive: true, maintainAspectRatio: false}
         });
-    }
-
-    function renderApprovedWindowTimeline(approvedWindows) {
-        const $container = $("#bookedSlotsHeatmap");
-        if (!$container.length) return;
-
-        if (!approvedWindows.length) {
-            $container.html('<div class="text-muted small">No approved bookings found.</div>');
-            return;
-        }
-
-        const parsed = approvedWindows
-            .map((w) => ({
-                title: String(w.title || "UNTITLED"),
-                rawStart: w.startTime,
-                rawEnd: w.endTime,
-                start: w.startTime ? new Date(String(w.startTime).replace(" ", "T")) : null,
-                end: w.endTime ? new Date(String(w.endTime).replace(" ", "T")) : null
-            }))
-            .filter((w) => w.start instanceof Date && !isNaN(w.start) && w.end instanceof Date && !isNaN(w.end) && w.start < w.end);
-
-        if (!parsed.length) {
-            $container.html('<div class="text-muted small">No valid approved booking slots found.</div>');
-            return;
-        }
-
-        const dateSet = new Set();
-        parsed.forEach((w) => {
-            let cursor = new Date(w.start);
-            cursor.setHours(0, 0, 0, 0);
-            const endDate = new Date(w.end);
-            endDate.setHours(0, 0, 0, 0);
-            while (cursor <= endDate) {
-                dateSet.add(formatDateKey(cursor));
-                cursor.setDate(cursor.getDate() + 1);
-            }
-        });
-        const dates = Array.from(dateSet).sort();
-
-        const timeRangeForDate = (start, end, dateKey) => {
-            const dayStart = new Date(`${dateKey}T00:00:00`);
-            const dayEnd = new Date(`${dateKey}T23:59:59`);
-            const from = start > dayStart ? start : dayStart;
-            const to = end < dayEnd ? end : dayEnd;
-            if (from >= to) return "";
-            return `${formatHm(from)}-${formatHm(to)}`;
-        };
-
-        const header = [
-            "<tr><th>Maintenance Window Name</th>",
-            ...dates.map((d) => `<th>${escapeHtml(d)}</th>`),
-            "</tr>"
-        ].join("");
-
-        const rows = parsed.map((w) => {
-            const cells = dates.map((d) => {
-                const slot = timeRangeForDate(w.start, w.end, d);
-                const cls = slot ? "slot-booked" : "slot-empty";
-                const safeTitle = escapeHtml(w.title);
-                const safeStart = escapeHtml(formatDateTime(w.rawStart));
-                const safeEnd = escapeHtml(formatDateTime(w.rawEnd));
-                const details = slot
-                    ? `Window: ${safeTitle}<br>Status: APPROVED<br>Start: ${safeStart}<br>End: ${safeEnd}`
-                    : `Slot free`;
-                return `<td class="slot-cell ${cls}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${details}">${escapeHtml(slot)}</td>`;
-            }).join("");
-            return `<tr><th>${escapeHtml(w.title)}</th>${cells}</tr>`;
-        }).join("");
-
-        $container.html(`
-          <div class="heatmap-legend small mb-2">
-            <span><i class="legend-box slot-booked"></i> Booked</span>
-            <span><i class="legend-box slot-empty"></i> Free</span>
-          </div>
-          <div class="heatmap-table-scroll">
-            <table class="booked-heatmap-table">
-              <thead>${header}</thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        `);
-
-        if (window.bootstrap && window.bootstrap.Tooltip) {
-            $container.find('[data-bs-toggle="tooltip"]').each(function () {
-                new bootstrap.Tooltip(this, {container: "body", trigger: "hover focus"});
-            });
-        }
-    }
-
-    function formatDateKey(dateObj) {
-        const y = dateObj.getFullYear();
-        const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-        const d = String(dateObj.getDate()).padStart(2, "0");
-        return `${y}-${m}-${d}`;
     }
 
     function formatHm(dateObj) {
@@ -1260,4 +1173,168 @@ $(function () {
             return null;
         }
     }
+
+
+    function drawApprovedWindowScheduleChart(approvedWindows) {
+        const $container = $("#approvedWindowScheduleChartWrap");
+        if (!$container.length) return;
+
+        if (charts["chartApprovedWindowSchedule"]) {
+            charts["chartApprovedWindowSchedule"].destroy();
+            delete charts["chartApprovedWindowSchedule"];
+        }
+
+        if (!approvedWindows || approvedWindows.length === 0) {
+            $container.html('<div class="text-muted small">No approved bookings found.</div>');
+            return;
+        }
+
+        const dataPoints = approvedWindows.map(w => {
+            const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
+            const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
+            const title = String(w.title || "UNTITLED");
+
+            return {
+                x: [start, end],
+                y: title,
+                title: title,
+                barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
+                startLabel: formatDateTime(w.startTime),
+                endLabel: formatDateTime(w.endTime)
+            };
+        });
+
+        const chartHeight = Math.max(260, dataPoints.length * 38 + 60);
+        const containerWidth = $container.innerWidth() || 0;
+        const chartWidth = Math.max(containerWidth, 1200, dataPoints.length * 140);
+
+        $container.html(`
+        <div class="approved-window-chart-inner" style="height: ${chartHeight}px; width: ${chartWidth}px;">
+            <canvas id="chartApprovedWindowSchedule"></canvas>
+        </div>
+    `);
+
+        const minStart = Math.min(...dataPoints.map(point => point.x[0]));
+        const maxEnd = Math.max(...dataPoints.map(point => point.x[1]));
+        const totalRange = Math.max(maxEnd - minStart, 1);
+        const axisPadding = Math.max(totalRange * 0.04, 60 * 60 * 1000);
+
+        const ctx = document.getElementById("chartApprovedWindowSchedule");
+        if (!ctx) return;
+
+        charts["chartApprovedWindowSchedule"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+                datasets: [{
+                    label: "Approved Window Schedule",
+                    data: dataPoints,
+                    backgroundColor: "#2563eb",
+                    borderColor: "#1d4ed8",
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barThickness: 34,
+                    minBarLength: 100
+                }]
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: {
+                    xAxisKey: "x",
+                    yAxisKey: "y"
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) {
+                                return items[0].raw.title;
+                            },
+                            label: function (context) {
+                                const raw = context.raw;
+                                return `${raw.startLabel} → ${raw.endLabel}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: "linear",
+                        position: "top",
+                        min: minStart - axisPadding,
+                        max: maxEnd + axisPadding,
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.28)",
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            callback: function (value) {
+                                return formatApprovedWindowAxis(value);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: "Date / Time"
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.22)",
+                            lineWidth: 1
+                        },
+                        title: {
+                            display: true,
+                            text: "Maintenance Window"
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                id: "approvedWindowBarLabels",
+                afterDatasetsDraw(chart) {
+                    const {ctx} = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const dataset = chart.data.datasets[0];
+
+                    ctx.save();
+                    ctx.font = "12px sans-serif";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    meta.data.forEach((bar, index) => {
+                        const raw = dataset.data[index];
+                        const label = String(raw.barLabel || "");
+                        const x = (bar.x + bar.base) / 2;
+                        const y = bar.y;
+
+                        ctx.fillText(label, x, y);
+                    });
+
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function formatApprovedWindowAxis(value) {
+        const d = new Date(Number(value));
+        if (isNaN(d.getTime())) return "";
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
 });

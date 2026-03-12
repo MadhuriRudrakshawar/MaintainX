@@ -364,32 +364,32 @@
     </div>
 
     <!-- ===================== ANALYTICS VIEW ===================== -->
-    <div class="d-none" id="analyticsView">
-        <div class="d-flex justify-content-between align-items-center mb-1">
+    <div class="d-none w-100" id="analyticsView">
+        <div class="d-flex justify-content-between align-items-center mb-2">
             <h5 class="m-0">Analytics Dashboard</h5>
             <button class="btn btn-outline-secondary btn-sm" id="backToDashboardBtn" type="button">
                 <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
             </button>
         </div>
 
-        <div class="container-fluid px-0 h-100">
-            <div class="analytics-section mb-3 w-100">
-                <h6 class="text-uppercase text-muted small mb-2">Network Element Analysis</h6>
-                <div class="row g-2 analytics-row w-100">
-                    <div class="col-12 col-lg-6 analytics-card-col">
-                        <div class="card w-100">
-                            <div class="card-body">
-                                <h6 class="card-title">Network Elements by Type</h6>
+        <div class="container-fluid px-0">
+            <div class="analytics-section mb-3 w-100 p-2 rounded-3">
+                <h6 class="text-uppercase text-muted small mb-2 fw-bold analytics-section-title">Network Element Analysis</h6>
+                <div class="row g-2 w-100 m-0">
+                    <div class="col-12 col-xl-6 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Network Elements by Type</h6>
                                 <div class="chart-wrap">
                                     <canvas id="chartElementsByType"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-lg-6 analytics-card-col">
-                        <div class="card w-100">
-                            <div class="card-body">
-                                <h6 class="card-title">Network Element Health Split</h6>
+                    <div class="col-12 col-xl-6 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Network Element Health Split</h6>
                                 <div class="chart-wrap">
                                     <canvas id="chartElementHealth"></canvas>
                                 </div>
@@ -398,24 +398,24 @@
                     </div>
                 </div>
             </div>
-            <div class="analytics-section w-100">
-                <h6 class="text-uppercase text-muted small mb-2">Maintenance Window Analytics</h6>
-                <div class="row g-2 analytics-row w-100">
-                    <div class="col-12 col-lg-4 analytics-card-col">
-                        <div class="card w-100">
-                            <div class="card-body">
-                                <h6 class="card-title">Maintenance Status Distribution</h6>
+            <div class="analytics-section w-100 p-2 rounded-3">
+                <h6 class="text-uppercase text-muted small mb-2 fw-bold analytics-section-title">Maintenance Window Analytics</h6>
+                <div class="row g-2 w-100 m-0">
+                    <div class="col-12 col-xl-4 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Maintenance Status Distribution</h6>
                                 <div class="chart-wrap">
                                     <canvas id="chartMaintenanceStatus"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-lg-8 analytics-card-col">
-                        <div class="card w-100">
-                            <div class="card-body">
-                                <h6 class="card-title">Approved Booked Slots Timeline</h6>
-                                <div class="booked-heatmap-wrap" id="bookedSlotsHeatmap"></div>
+                    <div class="col-12 col-xl-8 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Approved Maintenance Window Schedule</h6>
+                                <div class="approved-window-chart-wrap" id="approvedWindowScheduleChartWrap"></div>
                             </div>
                         </div>
                     </div>
