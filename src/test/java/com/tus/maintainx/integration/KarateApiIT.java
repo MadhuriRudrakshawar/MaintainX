@@ -1,11 +1,12 @@
 package com.tus.maintainx.integration;
 
 import com.intuit.karate.junit5.Karate;
+import com.tus.maintainx.MaintainXApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = MaintainXApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class KarateApiIT {
 

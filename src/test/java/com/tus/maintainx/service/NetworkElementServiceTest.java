@@ -36,7 +36,6 @@ class NetworkElementServiceTest {
     @BeforeEach
     void setup() {
         dto = new NetworkElementCreateDTO(
-                "  NE-001  ",
                 "  Core Router  ",
                 "  ROUTER  ",
                 "  Dublin  ",
@@ -49,21 +48,23 @@ class NetworkElementServiceTest {
 
         when(repo.save(any(NetworkElementEntity.class))).thenAnswer(invocation -> {
             NetworkElementEntity e = invocation.getArgument(0);
-            e.setId(10L);
+            if (e.getId() == null) {
+                e.setId(10L);
+            }
             return e;
         });
 
         NetworkElementResponseDTO created = service.create(dto);
 
         assertNotNull(created.getId());
-        assertEquals("NE-001", created.getElementCode());
+        assertEquals("NE-010", created.getElementCode());
         assertEquals("Core Router", created.getName());
         assertEquals("ROUTER", created.getElementType());
         assertEquals("Dublin", created.getRegion());
         assertEquals("ACTIVE", created.getStatus());
 
-        verify(repo, times(1)).save(any(NetworkElementEntity.class));
-        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 10L, AuditAction.CREATED, "Network element created: NE-001");
+        verify(repo, times(2)).save(any(NetworkElementEntity.class));
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 10L, AuditAction.CREATED, "Network element created: NE-010");
     }
 
 
@@ -136,7 +137,7 @@ class NetworkElementServiceTest {
         );
 
         NetworkElementCreateDTO updateDto = new NetworkElementCreateDTO(
-                "  NE-001  ", "  Core Router  ", "  ROUTER  ", "  Dublin  ", "ACTIVE"
+                "  Core Router  ", "  ROUTER  ", "  Dublin  ", "ACTIVE"
         );
 
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
@@ -145,14 +146,14 @@ class NetworkElementServiceTest {
         NetworkElementResponseDTO updated = service.update(1L, updateDto);
 
         assertEquals(1L, updated.getId());
-        assertEquals("NE-001", updated.getElementCode());
+        assertEquals("NE-OLD", updated.getElementCode());
         assertEquals("Core Router", updated.getName());
         assertEquals("ROUTER", updated.getElementType());
         assertEquals("Dublin", updated.getRegion());
         assertEquals("ACTIVE", updated.getStatus());
         verify(repo).findById(1L);
         verify(repo).save(existing);
-        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.UPDATED, "Network element updated: NE-001");
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.UPDATED, "Network element updated: NE-OLD");
     }
 
     @Test

@@ -40,7 +40,7 @@ class NetworkElementControllerTest {
     @Test
     void createCheckTest() throws Exception {
         NetworkElementCreateDTO dto = new NetworkElementCreateDTO(
-                "NE-001", "Core Router", "ROUTER", "Dublin", "ACTIVE"
+                "Core Router", "ROUTER", "Dublin", "ACTIVE"
         );
 
         NetworkElementResponseDTO saved = new NetworkElementResponseDTO(
@@ -94,7 +94,7 @@ class NetworkElementControllerTest {
     @Test
     void updateWithPutTest() throws Exception {
         NetworkElementCreateDTO req = new NetworkElementCreateDTO(
-                "NE-001", "Core Router Y", "ROUTER", "Dublin", "ACTIVE"
+                "Core Router Y", "ROUTER", "Dublin", "ACTIVE"
         );
 
         NetworkElementResponseDTO updated = new NetworkElementResponseDTO(
@@ -114,7 +114,7 @@ class NetworkElementControllerTest {
     @Test
     void updateWithPatchNotAllowedTest() throws Exception {
         NetworkElementCreateDTO req = new NetworkElementCreateDTO(
-                "NE-001", "Core Router Z", "ROUTER", "Dublin", "ACTIVE"
+                "Core Router Z", "ROUTER", "Dublin", "ACTIVE"
         );
 
         mvc.perform(patch("/api/v1/network-elements/1")

@@ -20,14 +20,14 @@ class AdminNetworkElementFlowE2ETest extends AbstractSeleniumFlowTest {
         driver.findElement(org.openqa.selenium.By.id("showAddElementBtn")).click();
         waitForVisible(org.openqa.selenium.By.id("addElementPanel"));
 
-        driver.findElement(org.openqa.selenium.By.id("neCode")).sendKeys("NE-777");
         driver.findElement(org.openqa.selenium.By.id("neName")).sendKeys("Admin Flow Element");
         driver.findElement(org.openqa.selenium.By.id("neType")).sendKeys("Core Router");
         driver.findElement(org.openqa.selenium.By.id("neRegion")).sendKeys("Dublin");
         driver.findElement(org.openqa.selenium.By.id("saveElementBtn")).click();
 
-        waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "NE-777");
+        waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "NE-002");
         waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "Admin Flow Element");
-        assertTrue(networkElementRepository.findAll().stream().anyMatch(ne -> "NE-777".equals(ne.getElementCode())));
+        assertTrue(networkElementRepository.findAll().stream().anyMatch(ne ->
+                "Admin Flow Element".equals(ne.getName()) && "NE-002".equals(ne.getElementCode())));
     }
 }

@@ -1,5 +1,6 @@
 package com.tus.maintainx.E2E;
 
+import com.tus.maintainx.MaintainXApplication;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
@@ -32,7 +33,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashSet;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = MaintainXApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 abstract class AbstractSeleniumFlowTest {
 

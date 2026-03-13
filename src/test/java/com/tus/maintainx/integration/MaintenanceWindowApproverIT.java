@@ -1,5 +1,6 @@
 package com.tus.maintainx.integration;
 
+import com.tus.maintainx.MaintainXApplication;
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(classes = MaintainXApplication.class)
 @AutoConfigureMockMvc
 class MaintenanceWindowApproverIT {
 

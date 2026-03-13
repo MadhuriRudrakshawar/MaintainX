@@ -64,8 +64,6 @@ $(function () {
 
     const $auditTableEl = $("#auditTable");
 
-
-    const $neCode = $("#neCode");
     const $neName = $("#neName");
     const $neType = $("#neType");
     const $neRegion = $("#neRegion");
@@ -746,17 +744,15 @@ $(function () {
     function readForm() {
         if (!validateForm($neForm)) return null;
 
-        const elementCode = $neCode.val().trim();
         const name = $neName.val().trim();
         const elementType = $neType.val();
         const region = $neRegion.val();
         const status = $('input[name="neStatus"]:checked').val();
 
-        return {elementCode, name, elementType, region, status};
+        return {name, elementType, region, status};
     }
 
     function fillForm(e) {
-        $neCode.val(e.elementCode);
         $neName.val(e.name);
         $neType.val(e.elementType);
         $neRegion.val(e.region);
@@ -768,7 +764,6 @@ $(function () {
 
     function clearForm() {
         resetFormValidation($neForm);
-        $neCode.val("");
         $neName.val("");
         $neType.val("");
         $neRegion.val("");

@@ -23,13 +23,15 @@ public class NetworkElementService {
     public NetworkElementResponseDTO create(NetworkElementCreateDTO dto) {
 
         NetworkElementEntity e = new NetworkElementEntity();
-        e.setElementCode(dto.getElementCode().trim());
+        e.setElementCode(buildPendingCode());
         e.setName(dto.getName().trim());
         e.setElementType(dto.getElementType().trim());
         e.setRegion(dto.getRegion().trim());
         e.setStatus(dto.getStatus());
 
         NetworkElementEntity saved = networkElementRepository.save(e);
+        saved.setElementCode(buildElementCode(saved.getId()));
+        saved = networkElementRepository.save(saved);
 
         auditService.log(
                 AuditEntityType.NETWORK_ELEMENT,
@@ -68,7 +70,6 @@ public class NetworkElementService {
 
         NetworkElementEntity existing = getById(id);
 
-        existing.setElementCode(dto.getElementCode().trim());
         existing.setName(dto.getName().trim());
         existing.setElementType(dto.getElementType().trim());
         existing.setRegion(dto.getRegion().trim());
@@ -135,5 +136,13 @@ public class NetworkElementService {
 
     public NetworkElementResponseDTO getByElementId(Long id) {
         return toDto(getById(id));
+    }
+
+    private String buildElementCode(Long id) {
+        return String.format("NE-%03d", id);
+    }
+
+    private String buildPendingCode() {
+        return "PENDING-" + System.nanoTime();
     }
 }
