@@ -11,6 +11,7 @@ import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
+import com.tus.maintainx.validation.MaintenanceWindowValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
@@ -27,6 +28,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class MaintenanceWindowServiceTest {
+
+    private MaintenanceWindowService createService(
+            MaintenanceWindowRepository mwRepo,
+            NetworkElementRepository neRepo,
+            UserRepository userRepo
+    ) {
+        return new MaintenanceWindowService(
+                mwRepo,
+                neRepo,
+                userRepo,
+                mock(AuditService.class),
+                new MaintenanceWindowValidator(mwRepo)
+        );
+    }
 
     @AfterEach
     void clearSecurityContext() {
@@ -47,15 +62,15 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
 
         mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
-        dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
         dto.setNetworkElementIds(List.of(10L, 11L)); // used by service
 
         UserEntity user = new UserEntity();
@@ -105,13 +120,13 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
         mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
-        dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
         dto.setNetworkElementIds(List.of(10L, 11L)); // expects 2
 
         UserEntity user = new UserEntity();
@@ -136,14 +151,14 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
         mockAuthenticatedUser("engineer1");
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
-        dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
         dto.setNetworkElementIds(List.of(10L, 11L));
 
         UserEntity user = new UserEntity();
@@ -178,7 +193,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
 
         // entity 1
         UserEntity u = new UserEntity();
@@ -214,7 +229,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
 
         UserEntity u = new UserEntity();
         u.setUsername("engineer1");
@@ -240,7 +255,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
 
         MaintenanceWindowEntity e = new MaintenanceWindowEntity();
         e.setId(10L);
@@ -264,7 +279,7 @@ class MaintenanceWindowServiceTest {
         NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
         UserRepository userRepo = mock(UserRepository.class);
 
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, neRepo, userRepo, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
 
         UserEntity u = new UserEntity();
         u.setUsername("engineer1");
@@ -294,8 +309,8 @@ class MaintenanceWindowServiceTest {
         MaintenanceWindowUpdateRequestDTO dto = new MaintenanceWindowUpdateRequestDTO();
         dto.setTitle("Updated");
         dto.setDescription("New desc");
-        dto.setStartTime(LocalDateTime.of(2026, 2, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 2, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
         dto.setNetworkElementIds(List.of(1L, 2L));
 
         MaintenanceWindowResponseDTO resp = service.update(10L, dto);
@@ -309,7 +324,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void deleteMWExistTest() {
         MaintenanceWindowRepository repo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(repo, null, null);
 
         long id = 10L;
         when(repo.existsById(id)).thenReturn(true);
@@ -322,7 +337,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void deleteMWNotExistTest() {
         MaintenanceWindowRepository repo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(repo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(repo, null, null);
 
         long id = 99L;
         when(repo.existsById(id)).thenReturn(false);
@@ -337,7 +352,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverApprovedTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -375,7 +390,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverWhenNotPendingFailTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -397,7 +412,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void approverWindowNotFoundTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         when(mwRepo.findById(10L)).thenReturn(Optional.empty());
 
@@ -408,7 +423,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectWindowTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -443,7 +458,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectReasonMissingTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");
@@ -467,7 +482,7 @@ class MaintenanceWindowServiceTest {
     @Test
     void rejectWhenNotPendingTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
-        MaintenanceWindowService service = new MaintenanceWindowService(mwRepo, null, null, mock(AuditService.class));
+        MaintenanceWindowService service = createService(mwRepo, null, null);
 
         UserEntity requester = new UserEntity();
         requester.setUsername("engineer1");

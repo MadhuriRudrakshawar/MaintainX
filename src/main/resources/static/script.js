@@ -372,13 +372,7 @@ $(function () {
                 contentType: "application/json",
                 data: JSON.stringify(payload)
             })
-                .done((created) => {
-                    loadAll();
-                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
-                        clearForm();
-                        $saveElementBtn.removeData("editId");
-                    }, $backFromElementFormBtn);
-                })
+
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Create failed");
                     console.log(xhr.responseText);
@@ -1080,8 +1074,6 @@ $(function () {
         applyMwDateConstraints();
         if (!validateForm($mwForm)) return null;
 
-        const requestedById = Number(sessionStorage.getItem("userId"));
-
         const title = $mwTitle.val().trim();
         const startTime = $mwStart.val();
         const endTime = $mwEnd.val();
@@ -1090,14 +1082,9 @@ $(function () {
         const endNum = document.getElementById("mwEnd").valueAsNumber;
         const nowNum = Date.now();
 
-        const selected = $mwElements.find('input:checked')
+        const selected = $mwElements.find("input:checked")
             .map((_, el) => Number(el.value))
             .get();
-
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
 
         if (!selected.length) {
             alert("Please select at least one Network Element");
@@ -1114,17 +1101,12 @@ $(function () {
             return null;
         }
 
-        if (!requestedById || isNaN(requestedById)) {
-            alert("Session expired. Please login again.");
-            return null;
-        }
-
         return {
             title: title,
             description: "",
             startTime: toSeconds(startTime),
             endTime: toSeconds(endTime),
-            networkElementIds: selected,
+            networkElementIds: selected
         };
     }
 
