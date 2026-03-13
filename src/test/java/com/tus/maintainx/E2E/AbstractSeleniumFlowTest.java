@@ -1,6 +1,5 @@
 package com.tus.maintainx.E2E;
 
-import com.tus.maintainx.entity.AuditLogEntity;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.entity.UserEntity;
@@ -128,7 +127,7 @@ abstract class AbstractSeleniumFlowTest {
     }
 
     protected void waitForCondition(java.util.function.Function<WebDriver, Boolean> condition) {
-        wait.until(condition::apply);
+        wait.until(condition);
     }
 
     protected Object executeScript(String script, Object... args) {
@@ -177,7 +176,7 @@ abstract class AbstractSeleniumFlowTest {
         return maintenanceWindowRepository.save(window);
     }
 
-    protected AuditLogEntity saveAuditLog(
+    protected void saveAuditLog(
             AuditEntityType entityType,
             Long entityId,
             AuditAction action,
@@ -186,7 +185,7 @@ abstract class AbstractSeleniumFlowTest {
             String details,
             LocalDateTime createdAt
     ) {
-        AuditLogEntity log = AuditLogEntity.builder()
+        auditLogRepository.save(com.tus.maintainx.entity.AuditLogEntity.builder()
                 .entityType(entityType)
                 .entityId(entityId)
                 .action(action)
@@ -194,8 +193,7 @@ abstract class AbstractSeleniumFlowTest {
                 .roleName(roleName)
                 .details(details)
                 .createdAt(createdAt)
-                .build();
-        return auditLogRepository.save(log);
+                .build());
     }
 
     protected String baseUrl() {

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class EngineerMaintenanceWindowFlowE2ETest extends AbstractSeleniumFlowTest {
 
@@ -29,13 +29,13 @@ class EngineerMaintenanceWindowFlowE2ETest extends AbstractSeleniumFlowTest {
         setDateTimeValue("mwEnd", LocalDateTime.now().plusDays(1).plusHours(2).withSecond(0).withNano(0));
 
         List<org.openqa.selenium.WebElement> checkboxes = driver.findElements(org.openqa.selenium.By.cssSelector("#mwElements input[type='checkbox']"));
-        assertTrue(!checkboxes.isEmpty());
+        assertFalse(checkboxes.isEmpty());
         checkboxes.get(0).click();
 
         driver.findElement(org.openqa.selenium.By.id("saveWindowBtn")).click();
 
         waitForText(org.openqa.selenium.By.cssSelector("#mwTable tbody"), "Engineer Flow Window");
         waitForText(org.openqa.selenium.By.cssSelector("#mwTable tbody"), "PENDING");
-        assertTrue(maintenanceWindowRepository.findAll().stream().anyMatch(mw -> "Engineer Flow Window".equals(mw.getTitle())));
+        assertFalse(maintenanceWindowRepository.findAll().stream().noneMatch(mw -> "Engineer Flow Window".equals(mw.getTitle())));
     }
 }

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class LoginFlowE2ETest extends AbstractSeleniumFlowTest {
 
@@ -22,6 +23,6 @@ class LoginFlowE2ETest extends AbstractSeleniumFlowTest {
 
         waitForVisible(org.openqa.selenium.By.id("loginView"));
         waitForHidden(org.openqa.selenium.By.id("homeView"));
-        assertEquals(null, executeScript("return sessionStorage.getItem('accessToken');"));
+        assertNull(executeScript("return sessionStorage.getItem('accessToken');"));
     }
 }

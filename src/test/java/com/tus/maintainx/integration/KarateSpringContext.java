@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -175,6 +176,7 @@ public class KarateSpringContext {
         return jwtUtils.generateToken(user.getUsername(), user.getRole());
     }
 
+
     private UserEntity saveUser(String username, String role, String rawPassword) {
         UserEntity user = new UserEntity();
         user.setUsername(username);
@@ -185,9 +187,7 @@ public class KarateSpringContext {
 
     private Set<NetworkElementEntity> linkedSet(NetworkElementEntity... elements) {
         Set<NetworkElementEntity> set = new LinkedHashSet<>();
-        for (NetworkElementEntity element : elements) {
-            set.add(element);
-        }
+        Collections.addAll(set, elements);
         return set;
     }
 }
