@@ -10,11 +10,10 @@ import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.exception.BadRequestException;
 import com.tus.maintainx.exception.NotFoundException;
-import com.tus.maintainx.exception.OverlapException;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
-import jakarta.validation.Valid;
+import com.tus.maintainx.validation.MaintenanceWindowValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -38,9 +37,15 @@ public class MaintenanceWindowService {
     private final NetworkElementRepository networkElementRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final MaintenanceWindowValidator maintenanceWindowValidator;
 
     @Transactional
-    public MaintenanceWindowResponseDTO create(@Valid MaintenanceWindowCreateRequestDTO dto) {
+    public MaintenanceWindowResponseDTO create(MaintenanceWindowCreateRequestDTO dto) {
+        maintenanceWindowValidator.validateRequest(
+                dto.getStartTime(),
+                dto.getEndTime(),
+                dto.getNetworkElementIds()
+        );
 
         String username = getAuthenticatedUsername();
 
@@ -51,10 +56,7 @@ public class MaintenanceWindowService {
 
         List<NetworkElementEntity> elements =
                 networkElementRepository.findAllById(dto.getNetworkElementIds());
-
-        if (elements.size() != dto.getNetworkElementIds().size()) {
-            throw new BadRequestException("Some Network Element IDs are invalid");
-        }
+        maintenanceWindowValidator.validateExistingNetworkElements(dto.getNetworkElementIds(), elements);
 
         MaintenanceWindowEntity e = new MaintenanceWindowEntity();
         e.setTitle(dto.getTitle());
@@ -66,29 +68,7 @@ public class MaintenanceWindowService {
         e.setRequestedBy(currentUser);
         e.getNetworkElements().clear();
         e.getNetworkElements().addAll(elements);
-
-
-        for (Long elementId : dto.getNetworkElementIds()) {
-            boolean overlap = maintenanceWindowRepository.existsOverlappingMWindow(
-                    elementId,
-                    dto.getStartTime(),
-                    dto.getEndTime()
-            );
-
-            if (overlap) {
-
-                String name = "Unknown";
-                for (NetworkElementEntity ne : elements) {
-                    if (ne.getId().equals(elementId)) {
-                        name = ne.getName();
-                    }
-                }
-
-                throw new OverlapException(
-                        "Overlap detected: maintenance window already exists for element '" + name + "'"
-                );
-            }
-        }
+        maintenanceWindowValidator.checkForOverlap(elements, dto.getStartTime(), dto.getEndTime());
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         auditService.log(saved.getId(), AuditAction.CREATED, "Maintenance window created");
@@ -114,6 +94,11 @@ public class MaintenanceWindowService {
 
     @Transactional
     public MaintenanceWindowResponseDTO update(Long id, MaintenanceWindowUpdateRequestDTO dto) {
+        maintenanceWindowValidator.validateRequest(
+                dto.getStartTime(),
+                dto.getEndTime(),
+                dto.getNetworkElementIds()
+        );
 
 
         MaintenanceWindowEntity e = maintenanceWindowRepository.findById(id)
@@ -122,10 +107,7 @@ public class MaintenanceWindowService {
 
         List<NetworkElementEntity> elements =
                 networkElementRepository.findAllById(dto.getNetworkElementIds());
-
-        if (elements.size() != dto.getNetworkElementIds().size()) {
-            throw new BadRequestException("Some Network Element IDs are invalid");
-        }
+        maintenanceWindowValidator.validateExistingNetworkElements(dto.getNetworkElementIds(), elements);
 
         e.setTitle(dto.getTitle());
         e.setDescription(dto.getDescription());

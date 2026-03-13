@@ -26,7 +26,7 @@ public class MaintenanceWindowController {
 
     @Operation(summary = "Create maintenance window", description = "Creates a new maintenance window")
     @PostMapping
-    public ResponseEntity<MaintenanceWindowResponseDTO> create(@RequestBody MaintenanceWindowCreateRequestDTO dto) {
+    public ResponseEntity<MaintenanceWindowResponseDTO> create(@Valid @RequestBody MaintenanceWindowCreateRequestDTO dto) {
         MaintenanceWindowResponseDTO created = service.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
