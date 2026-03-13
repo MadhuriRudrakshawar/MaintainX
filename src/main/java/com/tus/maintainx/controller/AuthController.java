@@ -1,11 +1,12 @@
 package com.tus.maintainx.controller;
 
-
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.LoginRequest;
 import com.tus.maintainx.dto.LoginResponse;
 import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentication", description = "APIs for user login and logout")
 public class AuthController {
 
     private static final String LOGIN_DENIED = "Invalid username or password";
@@ -27,6 +29,7 @@ public class AuthController {
     private final AuthenticationManager authManager;
     private final JwtUtils jwtUtils;
 
+    @Operation(summary = "Login user", description = "Authenticates user and returns JWT token")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
 
@@ -59,6 +62,7 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Logout user", description = "Logs out the current user")
     @PostMapping("/logout")
     public ResponseEntity<LoginResponse> logout() {
         return ResponseEntity.ok(new LoginResponse(null, null, null, null, "Logged out"));
