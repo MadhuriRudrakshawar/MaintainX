@@ -11,8 +11,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO users (username, role, password) VALUES
   ('admin', 'ADMIN', 'admin123'),
-  ('approver', 'APPROVER', 'approver123'),
-  ('engineer1', 'ENGINEER', 'engineer123');
+  ('appr', 'APPROVER', 'apr123'),
+  ('eng', 'ENGINEER', 'eng123');
 
 INSERT INTO network_element (element_code, name, element_type, region, status) VALUES
   ('NE-001', 'Dublin Core Router A', 'CORE_ROUTER', 'DUBLIN', 'ACTIVE'),
@@ -44,31 +44,31 @@ INSERT INTO network_element (element_code, name, element_type, region, status) V
 INSERT INTO maintenance_windows
   (title, description, start_time, end_time, window_status, rejection_reason, decided_by, requested_by)
 VALUES
-  ('MW-01 Core Patch', 'Core patch batch 01', '2026-03-22 00:30:00', '2026-03-22 02:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-02 Edge Upgrade', 'Edge upgrade batch 02', '2026-03-22 02:00:00', '2026-03-22 04:30:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-03 Access Audit', 'Access audit batch 03', '2026-03-22 03:30:00', '2026-03-22 05:00:00', 'REJECTED', 'Insufficient details provided', 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-04 Agg Tune', 'Aggregation tuning batch 04', '2026-03-22 05:00:00', '2026-03-22 07:30:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-05 FW Rules', 'Firewall rules cleanup 05', '2026-03-22 06:15:00', '2026-03-22 08:00:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-06 Core Sync', 'Core routing sync 06', '2026-03-23 08:30:00', '2026-03-23 10:45:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-07 Edge Port', 'Edge port cleanup 07', '2026-03-23 09:00:00', '2026-03-23 11:00:00', 'REJECTED', 'Outside approved maintenance hours', 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-08 HA Test', 'Firewall HA test 08', '2026-03-23 11:30:00', '2026-03-23 13:30:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-09 VLAN Check', 'VLAN consistency 09', '2026-03-23 12:00:00', '2026-03-23 14:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-10 OS Update', 'Switch OS update 10', '2026-03-23 14:30:00', '2026-03-23 16:30:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-11 Kernel Patch', 'Kernel patch 11', '2026-03-24 15:00:00', '2026-03-24 17:45:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-12 Security Hardening', 'Security hardening 12', '2026-03-24 17:00:00', '2026-03-24 19:00:00', 'REJECTED', 'Risk too high / missing rollback plan', 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-13 Cert Rotate', 'Certificate rotation 13', '2026-03-24 18:30:00', '2026-03-24 20:30:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-14 PoE Tune', 'PoE tuning 14', '2026-03-24 20:00:00', '2026-03-24 22:00:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-15 Telemetry', 'Telemetry refresh 15', '2026-03-25 21:30:00', '2026-03-25 23:30:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-16 Interface Audit', 'Interface audit 16', '2026-03-25 00:00:00', '2026-03-25 01:30:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-17 QoS Update', 'QoS profile update 17', '2026-03-25 04:15:00', '2026-03-25 06:00:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-18 Policy Review', 'Policy review 18', '2026-03-26 07:45:00', '2026-03-26 09:15:00', 'REJECTED', 'Not aligned with change calendar', 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-19 STP Review', 'STP review 19', '2026-03-26 10:30:00', '2026-03-26 12:00:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-20 Redundancy Test', 'Redundancy validation 20', '2026-03-26 13:15:00', '2026-03-26 15:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-21 Core Patch', 'Core patch batch 21', '2026-03-27 16:45:00', '2026-03-27 18:15:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-22 Config Cleanup', 'Config cleanup 22', '2026-03-27 19:30:00', '2026-03-27 21:00:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-23 DR Drill', 'DR drill 23', '2026-03-27 22:15:00', '2026-03-27 23:45:00', 'APPROVED', NULL, 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-24 Firmware Minor', 'Firmware update 24', '2026-03-28 01:45:00', '2026-03-28 03:15:00', 'REJECTED', 'Insufficient details provided', 'approver', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1)),
-  ('MW-25 Capacity Expand', 'Capacity expansion 25', '2026-03-28 23:00:00', '2026-03-28 23:50:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'engineer1' LIMIT 1));
+  ('MW-01 Core Patch', 'Core patch batch 01', '2026-03-22 00:30:00', '2026-03-22 02:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-02 Edge Upgrade', 'Edge upgrade batch 02', '2026-03-12 10:00:00', '2026-03-12 12:30:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-03 Access Audit', 'Access audit batch 03', '2026-03-22 03:30:00', '2026-03-22 05:00:00', 'REJECTED', 'Insufficient details provided', 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-04 Agg Tune', 'Aggregation tuning batch 04', '2026-03-22 05:00:00', '2026-03-22 07:30:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-05 FW Rules', 'Firewall rules cleanup 05', '2026-03-22 06:15:00', '2026-03-22 08:00:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-06 Core Sync', 'Core routing sync 06', '2026-03-23 08:30:00', '2026-03-23 10:45:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-07 Edge Port', 'Edge port cleanup 07', '2026-03-23 09:00:00', '2026-03-23 11:00:00', 'REJECTED', 'Outside approved maintenance hours', 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-08 HA Test', 'Firewall HA test 08', '2026-03-13 00:00:00', '2026-03-13 23:59:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-09 VLAN Check', 'VLAN consistency 09', '2026-03-23 12:00:00', '2026-03-23 14:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-10 OS Update', 'Switch OS update 10', '2026-03-14 14:30:00', '2026-03-14 16:30:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-11 Kernel Patch', 'Kernel patch 11', '2026-03-24 15:00:00', '2026-03-24 17:45:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-12 Security Hardening', 'Security hardening 12', '2026-03-24 17:00:00', '2026-03-24 19:00:00', 'REJECTED', 'Risk too high / missing rollback plan', 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-13 Cert Rotate', 'Certificate rotation 13', '2026-03-24 18:30:00', '2026-03-24 20:30:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-14 PoE Tune', 'PoE tuning 14', '2026-03-24 20:00:00', '2026-03-24 22:00:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-15 Telemetry', 'Telemetry refresh 15', '2026-03-25 21:30:00', '2026-03-25 23:30:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-16 Interface Audit', 'Interface audit 16', '2026-03-25 00:00:00', '2026-03-25 01:30:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-17 QoS Update', 'QoS profile update 17', '2026-03-25 04:15:00', '2026-03-25 06:00:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-18 Policy Review', 'Policy review 18', '2026-03-26 07:45:00', '2026-03-26 09:15:00', 'REJECTED', 'Not aligned with change calendar', 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-19 STP Review', 'STP review 19', '2026-03-26 10:30:00', '2026-03-26 12:00:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-20 Redundancy Test', 'Redundancy validation 20', '2026-03-26 13:15:00', '2026-03-26 15:15:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-21 Core Patch', 'Core patch batch 21', '2026-03-27 16:45:00', '2026-03-27 18:15:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-22 Config Cleanup', 'Config cleanup 22', '2026-03-27 19:30:00', '2026-03-27 21:00:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-23 DR Drill', 'DR drill 23', '2026-03-27 22:15:00', '2026-03-27 23:45:00', 'APPROVED', NULL, 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-24 Firmware Minor', 'Firmware update 24', '2026-03-28 01:45:00', '2026-03-28 03:15:00', 'REJECTED', 'Insufficient details provided', 'appr', (SELECT id FROM users WHERE username = 'eng' LIMIT 1)),
+  ('MW-25 Capacity Expand', 'Capacity expansion 25', '2026-03-28 23:00:00', '2026-03-28 23:50:00', 'PENDING', NULL, 'PENDING', (SELECT id FROM users WHERE username = 'eng' LIMIT 1));
 
 INSERT INTO maintenance_window_elements (maintenance_window_id, network_element_id)
 SELECT mw.id, ne.id

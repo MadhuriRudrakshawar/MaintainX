@@ -53,6 +53,9 @@ $(function () {
     let activeRole = "";
 
     const $addElementPanel = $("#addElementPanel");
+    const $showAddElementBtn = $("#showAddElementBtn");
+    const $cancelAddElementBtn = $("#cancelAddElementBtn");
+    const $backFromElementFormBtn = $("#backFromElementFormBtn");
     const $saveElementBtn = $("#saveElementBtn");
     const $neTableSection = $("#neTableSection");
 
@@ -66,6 +69,7 @@ $(function () {
     const $neName = $("#neName");
     const $neType = $("#neType");
     const $neRegion = $("#neRegion");
+    const $neForm = $("#neForm");
     const $statusActive = $("#statusActive");
     const $statusDeactive = $("#statusDeactive");
 
@@ -74,14 +78,17 @@ $(function () {
     const $mwTableSection = $("#mwTableSection");
 
     const $addWindowPanel = $("#addWindowPanel");
+    const $showAddWindowBtn = $("#showAddWindowBtn");
+    const $cancelAddWindowBtn = $("#cancelAddWindowBtn");
+    const $backFromWindowFormBtn = $("#backFromWindowFormBtn");
     const $saveWindowBtn = $("#saveWindowBtn");
-    const $mwTableSection = $("#mwTableSection");
 
     const $mwId = $("#mwId");
     const $mwTitle = $("#mwTitle");
     const $mwStart = $("#mwStart");
     const $mwEnd = $("#mwEnd");
     const $mwElements = $("#mwElements");
+    const $mwForm = $("#mwForm");
 
     // ===================== Approver Reject Modal (optional) =====================
 
@@ -128,6 +135,7 @@ $(function () {
     });
 
     const mwTable = $mwTableEl.DataTable({
+        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
         pageLength: 5,
         lengthChange: true,
         lengthMenu: [[5, 10, 20], [5, 10, 20]],
@@ -158,12 +166,9 @@ $(function () {
                 }
             },
             {
-                data: "executionStatus",
-                width: "1%",
-                render: (v, _t, row) => {
-                    const effective = deriveExecutionStatus(row);
-                    return effective ? makeExecutionBadge(effective) : "";
-                }
+                data: null,
+                width: "12%",
+                render: (_v, _t, row) => renderExecutionStatus(row)
             },
             {
                 data: "id",
@@ -265,21 +270,9 @@ $(function () {
 
     // ===================== Maintenance Window Events =====================
     $saveWindowBtn.on("click", createMaintenanceWindow);
-    $addWindowPanel.on("show.bs.collapse", function () {
-        $mwTableSection.addClass("d-none");
-    });
-    $addWindowPanel.on("hide.bs.collapse", function () {
-        $mwTableSection.removeClass("d-none");
-    });
+    initPanelToggle($showAddWindowBtn, $cancelAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
 
     $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
-
-    $addWindowPanel.on("shown.bs.collapse", function () {
-        $mwTableSection.addClass("d-none");
-    });
-    $addWindowPanel.on("hidden.bs.collapse", function () {
-        $mwTableSection.removeClass("d-none");
-    });
 
     $mwTableEl.on("click", ".js-mw-delete", function () {
         const id = $(this).data("id");
@@ -294,7 +287,7 @@ $(function () {
             return;
         }
         fillMwForm(row);
-        $addWindowPanel.collapse("show");
+        showPanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, $backFromWindowFormBtn);
     });
 
 // ===================== Approver Actions (Approve/Reject) =====================
@@ -343,12 +336,10 @@ $(function () {
     });
 
     // ===================== Network Element Events =====================
-    $addElementPanel.on("shown.bs.collapse", function () {
-        $neTableSection.addClass("d-none");
-    });
-    $addElementPanel.on("hidden.bs.collapse", function () {
-        $neTableSection.removeClass("d-none");
-    });
+    initPanelToggle($showAddElementBtn, $cancelAddElementBtn, $addElementPanel, $neTableSection, function () {
+        clearForm();
+        $saveElementBtn.removeData("editId");
+    }, $backFromElementFormBtn);
 
     $saveElementBtn.on("click", function () {
         const payload = readForm();
@@ -365,9 +356,10 @@ $(function () {
             })
                 .done((updated) => {
                     table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
-                    clearForm();
-                    $saveElementBtn.removeData("editId");
-                    $addElementPanel.collapse("hide");
+                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
+                        clearForm();
+                        $saveElementBtn.removeData("editId");
+                    }, $backFromElementFormBtn);
                 })
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Update failed");
@@ -382,8 +374,10 @@ $(function () {
             })
                 .done((created) => {
                     loadAll();
-                    clearForm();
-                    $addElementPanel.collapse("hide");
+                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
+                        clearForm();
+                        $saveElementBtn.removeData("editId");
+                    }, $backFromElementFormBtn);
                 })
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Create failed");
@@ -398,7 +392,7 @@ $(function () {
 
         fillForm(data);
         $saveElementBtn.data("editId", data.id);
-        $addElementPanel.collapse("show");
+        showPanel($showAddElementBtn, $addElementPanel, $neTableSection, $backFromElementFormBtn);
     });
 
     $neTableEl.on("click", ".js-toggle", function () {
@@ -407,6 +401,8 @@ $(function () {
 
         const isActive = String(data.status).toUpperCase() === "ACTIVE";
         const endpoint = isActive ? "deactivate" : "activate";
+        const actionLabel = isActive ? "deactivate" : "activate";
+        const confirmMessage = `Do you want to ${actionLabel} ${data.elementCode}?`;
 
         if (isActive) {
             canDeactivateNetworkElement(data.id)
@@ -416,6 +412,7 @@ $(function () {
                         alert(`Network element is already in use in "${mwName}".`);
                         return;
                     }
+                    if (!confirm(confirmMessage)) return;
                     patchElementStatus(data.id, endpoint);
                 })
                 .fail((xhr) => {
@@ -425,6 +422,7 @@ $(function () {
             return;
         }
 
+        if (!confirm(confirmMessage)) return;
         patchElementStatus(data.id, endpoint);
     });
 
@@ -432,17 +430,30 @@ $(function () {
         const row = table.row($(this).closest("tr"));
         const data = row.data();
 
-        if (!confirm(`Delete ${data.elementCode}?`)) return;
+        canDeactivateNetworkElement(data.id)
+            .done((result) => {
+                if (!result.allowed) {
+                    const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                    alert(`Network element is already in use in "${mwName}".`);
+                    return;
+                }
 
-        $.ajax({
-            url: `${API}/${data.id}`,
-            method: "DELETE"
-        })
-            .done(() => {
-                row.remove().draw(false);
+                if (!confirm(`Delete ${data.elementCode}?`)) return;
+
+                $.ajax({
+                    url: `${API}/${data.id}`,
+                    method: "DELETE"
+                })
+                    .done(() => {
+                        row.remove().draw(false);
+                    })
+                    .fail((xhr) => {
+                        alert(errMsg(xhr) || "Delete failed");
+                        console.log(xhr.responseText);
+                    });
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Delete failed");
+                alert(errMsg(xhr) || "Unable to validate schedule usage");
                 console.log(xhr.responseText);
             });
     });
@@ -732,16 +743,14 @@ $(function () {
 
     // ===== Network Element Helpers =====
     function readForm() {
+        if (!validateForm($neForm)) return null;
+
         const elementCode = $neCode.val().trim();
         const name = $neName.val().trim();
         const elementType = $neType.val();
         const region = $neRegion.val();
         const status = $('input[name="neStatus"]:checked').val();
 
-        if (!elementCode || !name || !elementType || !region || !status) {
-            alert("Please fill all fields");
-            return null;
-        }
         return {elementCode, name, elementType, region, status};
     }
 
@@ -757,11 +766,43 @@ $(function () {
     }
 
     function clearForm() {
+        resetFormValidation($neForm);
         $neCode.val("");
         $neName.val("");
         $neType.val("");
         $neRegion.val("");
         $statusActive.prop("checked", true);
+    }
+
+    function initPanelToggle($showBtn, $cancelBtn, $panel, $tableSection, onHide, $backBtn) {
+        $showBtn.on("click", function () {
+            showPanel($showBtn, $panel, $tableSection, $backBtn);
+        });
+
+        $cancelBtn.on("click", function () {
+            hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+        });
+
+        if ($backBtn && $backBtn.length) {
+            $backBtn.on("click", function () {
+                hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+            });
+        }
+    }
+
+    function showPanel($showBtn, $panel, $tableSection, $backBtn) {
+        $panel.removeClass("d-none");
+        $tableSection.addClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.removeClass("d-none");
+        $showBtn.attr("aria-expanded", "true");
+    }
+
+    function hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn) {
+        $panel.addClass("d-none");
+        $tableSection.removeClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.addClass("d-none");
+        $showBtn.attr("aria-expanded", "false");
+        if (typeof onHide === "function") onHide();
     }
 
     function makeStatusBadge(status) {
@@ -824,6 +865,11 @@ $(function () {
         return "";
     }
 
+    function renderExecutionStatus(row) {
+        const effective = deriveExecutionStatus(row);
+        return effective ? makeExecutionBadge(effective) : '<span class="text-muted">-</span>';
+    }
+
     function deriveExecutionStatus(row) {
         const approval = String((row && row.windowStatus) || "").trim().toUpperCase();
         if (approval !== "APPROVED") return "";
@@ -868,9 +914,14 @@ $(function () {
                 (rows || [])
                     .filter((ne) => String((ne && ne.status) || "").trim().toUpperCase() === "ACTIVE")
                     .forEach((ne) => {
-                        const code = ne.elementCode || "";
-                        const name = ne.name || "";
-                        $mwElements.append(`<option value="${ne.id}">${code} - ${name}</option>`);
+                        const code = escapeHtml(ne.elementCode || "");
+                        const name = escapeHtml(ne.name || "");
+                        $mwElements.append(`
+                            <label class="mw-element-option">
+                                <input class="form-check-input" type="checkbox" value="${ne.id}">
+                                <span>${code} - ${name}</span>
+                            </label>
+                        `);
                     });
             })
             .fail((xhr) => {
@@ -907,8 +958,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done(() => {
-                    clearMwForm();
-                    $addWindowPanel.collapse("hide");
+                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
                     loadMaintenanceWindows();
                 })
                 .fail((xhr) => {
@@ -923,8 +973,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done(() => {
-                    clearMwForm();
-                    $addWindowPanel.collapse("hide");
+                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
                     loadMaintenanceWindows();
                 })
                 .fail((xhr) => {
@@ -1029,6 +1078,8 @@ $(function () {
 
     function readMwForm() {
         applyMwDateConstraints();
+        if (!validateForm($mwForm)) return null;
+
         const requestedById = Number(sessionStorage.getItem("userId"));
 
         const title = $mwTitle.val().trim();
@@ -1039,25 +1090,17 @@ $(function () {
         const endNum = document.getElementById("mwEnd").valueAsNumber;
         const nowNum = Date.now();
 
-        const selected = $mwElements.val() || [];
+        const selected = $mwElements.find('input:checked')
+            .map((_, el) => Number(el.value))
+            .get();
 
         if (!requestedById || isNaN(requestedById)) {
             alert("Session expired. Please login again.");
             return null;
         }
 
-        if (!title || !startTime || !endTime) {
-            alert("Please fill Title, Start, End");
-            return null;
-        }
-
         if (!selected.length) {
             alert("Please select at least one Network Element");
-            return null;
-        }
-
-        if (isNaN(startNum) || isNaN(endNum)) {
-            alert("Invalid date/time format");
             return null;
         }
 
@@ -1081,25 +1124,29 @@ $(function () {
             description: "",
             startTime: toSeconds(startTime),
             endTime: toSeconds(endTime),
-            networkElementIds: selected.map((x) => Number(x)),
+            networkElementIds: selected,
         };
     }
 
     function clearMwForm() {
+        resetFormValidation($mwForm);
         $mwId.val("");
         $mwTitle.val("");
         $mwStart.val("");
         $mwEnd.val("");
-        $mwElements.val([]);
+        $mwElements.find("input").prop("checked", false);
         applyMwDateConstraints();
     }
 
     function fillMwForm(w) {
+        const selectedIds = new Set((w.networkElementIds || []).map(String));
         $mwId.val(w.id);
         $mwTitle.val(w.title || "");
         $mwStart.val(toDateTimeLocalValueFromServer(w.startTime));
         $mwEnd.val(toDateTimeLocalValueFromServer(w.endTime));
-        $mwElements.val((w.networkElementIds || []).map(String));
+        $mwElements.find("input").each((_, el) => {
+            $(el).prop("checked", selectedIds.has(String(el.value)));
+        });
         applyMwDateConstraints();
     }
 
@@ -1122,6 +1169,20 @@ $(function () {
     function toDateTimeLocalValue(d) {
         const pad = (n) => String(n).padStart(2, "0");
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function validateForm($form) {
+        const form = $form.get(0);
+        if (!form.checkValidity()) {
+            $form.addClass("was-validated");
+            form.reportValidity();
+            return false;
+        }
+        return true;
+    }
+
+    function resetFormValidation($form) {
+        $form.removeClass("was-validated");
     }
 
     function toSeconds(dtLocal) {

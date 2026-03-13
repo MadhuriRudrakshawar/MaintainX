@@ -62,6 +62,7 @@ public class MaintenanceWindowService {
         e.setStartTime(dto.getStartTime());
         e.setEndTime(dto.getEndTime());
         e.setWindowStatus(STATUS_PENDING);
+        e.setDecidedBy(STATUS_PENDING);
         e.setRequestedBy(currentUser);
         e.getNetworkElements().clear();
         e.getNetworkElements().addAll(elements);
@@ -130,6 +131,9 @@ public class MaintenanceWindowService {
         e.setDescription(dto.getDescription());
         e.setStartTime(dto.getStartTime());
         e.setEndTime(dto.getEndTime());
+        if (e.getDecidedBy() == null || e.getDecidedBy().isBlank()) {
+            e.setDecidedBy(STATUS_PENDING);
+        }
         e.getNetworkElements().clear();
         e.getNetworkElements().addAll(elements);
 
@@ -146,10 +150,6 @@ public class MaintenanceWindowService {
         List<Long> ids = sortedElements.stream().map(NetworkElementEntity::getId).toList();
         List<String> codes = sortedElements.stream().map(NetworkElementEntity::getElementCode).toList();
         List<String> names = sortedElements.stream().map(NetworkElementEntity::getName).toList();
-        String requestedByUsername = e.getRequestedBy() != null
-                ? e.getRequestedBy().getUsername()
-                : "UNKNOWN";
-
         String requestedByUsername = e.getRequestedBy() == null ? null : e.getRequestedBy().getUsername();
 
         return MaintenanceWindowResponseDTO.builder()
