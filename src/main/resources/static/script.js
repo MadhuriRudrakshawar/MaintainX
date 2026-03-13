@@ -372,6 +372,13 @@ $(function () {
                 contentType: "application/json",
                 data: JSON.stringify(payload)
             })
+                .done((created) => {
+                    table.row.add(created).draw(false);
+                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
+                        clearForm();
+                        $saveElementBtn.removeData("editId");
+                    }, $backFromElementFormBtn);
+                })
 
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Create failed");
