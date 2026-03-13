@@ -1,7 +1,11 @@
 pipeline {
   agent any
 
-options { disableConcurrentBuilds() }
+  options {
+    disableConcurrentBuilds()
+    durabilityHint('PERFORMANCE_OPTIMIZED')
+    skipDefaultCheckout(true)
+  }
 
   environment {
     GITHUB_TOKEN = credentials('github-token')
@@ -24,17 +28,13 @@ options { disableConcurrentBuilds() }
       }
     }
 
-    stage('Build, Test & Coverage') {
-      steps {
-        powershell 'mvn -B clean verify'
-      }
-    }
-
-    stage('SonarQube Analysis') {
+    stage('Build, Test, Coverage & Sonar') {
       steps {
         withSonarQubeEnv('LocalSonar') {
           powershell '''
-            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY"
+            mvn -B -T 1C clean verify sonar:sonar `
+              "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
+              "-Dsonar.token=$env:SONAR_TOKEN"
           '''
         }
       }
@@ -51,7 +51,7 @@ options { disableConcurrentBuilds() }
 
   post {
     always {
-      junit 'target/surefire-reports/*.xml'
+      junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml,target/failsafe-reports/*.xml'
 
       publishHTML(target: [
         reportDir: 'target/site/jacoco',
