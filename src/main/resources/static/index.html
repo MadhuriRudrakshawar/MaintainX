@@ -44,45 +44,52 @@
 
     <!-- ===================== ADMIN PAGE ===================== -->
     <div class="d-none" id="adminPage">
-        <div class="alert alert-info mb-3">Admin Dashboard</div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-dark btn-sm" id="adminAuditBtn" type="button">
+                    <i class="bi bi-journal-text me-1"></i> Audit Log
+                </button>
 
-        <div class="d-flex gap-2 align-items-center">
-            <button aria-controls="addElementPanel" aria-expanded="false"
-                    class="btn btn-primary btn-sm"
-                    data-bs-target="#addElementPanel"
-                    data-bs-toggle="collapse" type="button">
-                <i class="bi bi-plus-lg me-1"></i> Add Network Element
-            </button>
+                <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                    <i class="bi bi-graph-up me-1"></i> View Analytics
+                </button>
 
-            <button class="btn btn-outline-dark btn-sm" id="adminAuditBtn" type="button">
-                <i class="bi bi-journal-text me-1"></i> Audit Log
+                <button aria-controls="addElementPanel" aria-expanded="false"
+                        class="btn btn-primary btn-sm" id="showAddElementBtn" type="button">
+                    <i class="bi bi-plus-lg me-1"></i> Add Network Element
+                </button>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm d-none" id="backFromElementFormBtn" type="button">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
             </button>
         </div>
 
         <div class="d-flex justify-content-center">
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="collapse mt-3" id="addElementPanel">
+                <div class="d-none mt-3" id="addElementPanel">
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white py-2">
                             <span class="fw-semibold">Add Network Element</span>
                         </div>
 
-                        <div class="card-body">
+                        <form class="card-body needs-validation" id="neForm" novalidate>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="neCode">Element Code</label>
-                                <input class="form-control form-control-sm" id="neCode" placeholder="NE-001">
+                                <input class="form-control form-control-sm" id="neCode" placeholder="NE-001" required>
+                                <div class="invalid-feedback">Element Code is required.</div>
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="neName">Name</label>
                                 <input class="form-control form-control-sm" id="neName"
-                                       placeholder="Dublin Core Router">
+                                       placeholder="Dublin Core Router" required>
+                                <div class="invalid-feedback">Name is required.</div>
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="neType">Device Type</label>
-                                <select class="form-select form-select-sm" id="neType">
+                                <select class="form-select form-select-sm" id="neType" required>
                                     <option disabled selected value="">Select device type</option>
                                     <option value="CORE_ROUTER">Core Router</option>
                                     <option value="EDGE_SWITCH">Edge Switch</option>
@@ -90,11 +97,12 @@
                                     <option value="AGGREGATION_SWITCH">Aggregation Switch</option>
                                     <option value="BACKBONE_FIREWALL">Backbone Firewall</option>
                                 </select>
+                                <div class="invalid-feedback">Device Type is required.</div>
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="neRegion">Region</label>
-                                <select class="form-select form-select-sm" id="neRegion">
+                                <select class="form-select form-select-sm" id="neRegion" required>
                                     <option disabled selected value="">Select region</option>
                                     <option value="DUBLIN">Dublin</option>
                                     <option value="CORK">Cork</option>
@@ -102,6 +110,7 @@
                                     <option value="DONEGAL">Donegal</option>
                                     <option value="NATIONWIDE">Nationwide</option>
                                 </select>
+                                <div class="invalid-feedback">Region is required.</div>
                             </div>
 
                             <div class="mb-2">
@@ -122,15 +131,14 @@
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-3">
-                                <button class="btn btn-outline-secondary btn-sm"
-                                        data-bs-target="#addElementPanel"
-                                        data-bs-toggle="collapse" type="button">
+                                <button class="btn btn-outline-secondary btn-sm" id="cancelAddElementBtn"
+                                        type="button">
                                     Cancel
                                 </button>
                                 <button class="btn btn-primary btn-sm" id="saveElementBtn" type="button">Save</button>
                             </div>
 
-                        </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -163,18 +171,23 @@
                 <i class="bi bi-journal-text me-1"></i> Audit Log
             </button>
         </div>
+        <div class="mb-3">
+            <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                <i class="bi bi-graph-up me-1"></i> View Analytics
+            </button>
+        </div>
 
         <div class="container px-0">
-            <table class="table table-striped table-sm align-middle w-100" id="pendingMwTable">
+            <table class="table table-striped table-sm" id="pendingMwTable">
                 <thead>
                 <tr>
                     <th>Title</th>
                     <th>Engineer</th>
-                    <th>Network Elements</th>
+                    <th>Elements</th>
                     <th>Start</th>
                     <th>End</th>
-                    <th>Approval Status</th>
-                    <th style="min-width: 130px;">Actions</th>
+                    <th>Status</th>
+                    <th style="min-width: 190px;">Actions</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
@@ -207,66 +220,72 @@
                 </div>
             </div>
         </div>
-
-
     </div>
 
     <!-- ===================== ENGINEER PAGE ===================== -->
     <div class="d-none" id="engineerPage">
         <div class="alert alert-info mb-3"> Engineer Dashboard</div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary btn-sm js-view-analytics" type="button">
+                    <i class="bi bi-graph-up me-1"></i> View Analytics
+                </button>
 
-
-        <button aria-controls="addWindowPanel" aria-expanded="false"
-                class="btn btn-primary btn-sm"
-                data-bs-target="#addWindowPanel"
-                data-bs-toggle="collapse" type="button">
-            <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
-        </button>
+                <button aria-controls="addWindowPanel" aria-expanded="false"
+                        class="btn btn-primary btn-sm" id="showAddWindowBtn" type="button">
+                    <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
+                </button>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm d-none" id="backFromWindowFormBtn" type="button">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </button>
+        </div>
 
         <div class="d-flex justify-content-center">
             <div class="col-12 col-md-6 col-lg-4">
-                <div class="collapse mt-3" id="addWindowPanel">
+                <div class="d-none mt-3" id="addWindowPanel">
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white py-2">
                             <span class="fw-semibold">Maintenance Window Booking</span>
                         </div>
 
-                        <div class="card-body">
+                        <form class="card-body needs-validation" id="mwForm" novalidate>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="mwTitle">Title</label>
                                 <input class="form-control form-control-sm" id="mwTitle"
-                                       placeholder="E.g. Core router patching">
+                                       placeholder="E.g. Core router patching" required>
+                                <div class="invalid-feedback">Title is required.</div>
                                 <input id="mwId" type="hidden" value="">
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="mwElements">Select Network Elements</label>
-                                <select class="form-select form-select-sm" id="mwElements" multiple>
-                                </select>
-                                <div class="form-text small">Hold Ctrl to select multiple.</div>
+                                <div aria-label="Select Network Elements" class="mw-element-picker" id="mwElements"></div>
+                                <div class="form-text small">Tick one or more network elements.</div>
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="mwStart">Start Time</label>
-                                <input class="form-control form-control-sm" id="mwStart" type="datetime-local">
+                                <input class="form-control form-control-sm" id="mwStart" required type="datetime-local">
+                                <div class="invalid-feedback">Start Time is required.</div>
                             </div>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="mwEnd">End Time</label>
-                                <input class="form-control form-control-sm" id="mwEnd" type="datetime-local">
+                                <input class="form-control form-control-sm" id="mwEnd" required type="datetime-local">
+                                <div class="invalid-feedback">End Time is required.</div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-3">
-                                <button class="btn btn-outline-secondary btn-sm"
-                                        data-bs-target="#addWindowPanel"
-                                        data-bs-toggle="collapse" type="button">
+                                <button class="btn btn-outline-secondary btn-sm" id="cancelAddWindowBtn"
+                                        type="button">
                                     Cancel
                                 </button>
                                 <button class="btn btn-primary btn-sm" id="saveWindowBtn" type="button">Save</button>
                             </div>
 
-                        </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -345,13 +364,76 @@
         </div>
     </div>
 
+    <!-- ===================== ANALYTICS VIEW ===================== -->
+    <div class="d-none w-100" id="analyticsView">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="m-0">Analytics Dashboard</h5>
+            <button class="btn btn-outline-secondary btn-sm" id="backToDashboardBtn" type="button">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </button>
+        </div>
+
+        <div class="container-fluid px-0">
+            <div class="analytics-section mb-3 w-100 p-2 rounded-3">
+                <h6 class="text-uppercase text-muted small mb-2 fw-bold analytics-section-title">Network Element Analysis</h6>
+                <div class="row g-2 w-100 m-0">
+                    <div class="col-12 col-xl-6 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Network Elements by Type</h6>
+                                <div class="chart-wrap">
+                                    <canvas id="chartElementsByType"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-6 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Network Element Health Split</h6>
+                                <div class="chart-wrap">
+                                    <canvas id="chartElementHealth"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="analytics-section w-100 p-2 rounded-3">
+                <h6 class="text-uppercase text-muted small mb-2 fw-bold analytics-section-title">Maintenance Window Analytics</h6>
+                <div class="row g-2 w-100 m-0">
+                    <div class="col-12 col-xl-4 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Maintenance Status Distribution</h6>
+                                <div class="chart-wrap">
+                                    <canvas id="chartMaintenanceStatus"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-8 d-flex min-w-0">
+                        <div class="card w-100 h-100 border">
+                            <div class="card-body p-2">
+                                <h6 class="card-title mb-1 small">Approved Maintenance Window Schedule</h6>
+                                <div class="approved-window-chart-wrap" id="approvedWindowScheduleChartWrap"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- JS -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
+    <!-- Bootstrap bundle is needed for collapse to work -->
     <script crossorigin="anonymous"
             src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
     <script src="script.js"></script>
 </div>

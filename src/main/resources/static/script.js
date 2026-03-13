@@ -1,6 +1,7 @@
 $(function () {
     const API = "/api/v1/network-elements";
     const MW_API = "/api/v1/maintenance-windows";
+    const ANALYTICS_API = "/api/v1/analytics/dashboard";
     const TOKEN_KEY = "accessToken";
     const mwCache = new Map();
 
@@ -43,8 +44,18 @@ $(function () {
     const $approverPage = $("#approverPage");
     const $engineerPage = $("#engineerPage");
     const $rolePages = $adminPage.add($approverPage).add($engineerPage);
+    const $analyticsView = $("#analyticsView");
+    const $viewAnalyticsBtns = $(".js-view-analytics");
+    const $backToDashboardBtn = $("#backToDashboardBtn");
+    const $approvalTrendNote = $("#approvalTrendNote");
+
+    const charts = {};
+    let activeRole = "";
 
     const $addElementPanel = $("#addElementPanel");
+    const $showAddElementBtn = $("#showAddElementBtn");
+    const $cancelAddElementBtn = $("#cancelAddElementBtn");
+    const $backFromElementFormBtn = $("#backFromElementFormBtn");
     const $saveElementBtn = $("#saveElementBtn");
     const $neTableSection = $("#neTableSection");
 
@@ -58,21 +69,26 @@ $(function () {
     const $neName = $("#neName");
     const $neType = $("#neType");
     const $neRegion = $("#neRegion");
+    const $neForm = $("#neForm");
     const $statusActive = $("#statusActive");
     const $statusDeactive = $("#statusDeactive");
 
     const $neTableEl = $("#neTable");
     const $mwTableEl = $("#mwTable");
+    const $mwTableSection = $("#mwTableSection");
 
     const $addWindowPanel = $("#addWindowPanel");
+    const $showAddWindowBtn = $("#showAddWindowBtn");
+    const $cancelAddWindowBtn = $("#cancelAddWindowBtn");
+    const $backFromWindowFormBtn = $("#backFromWindowFormBtn");
     const $saveWindowBtn = $("#saveWindowBtn");
-    const $mwTableSection = $("#mwTableSection");
 
     const $mwId = $("#mwId");
     const $mwTitle = $("#mwTitle");
     const $mwStart = $("#mwStart");
     const $mwEnd = $("#mwEnd");
     const $mwElements = $("#mwElements");
+    const $mwForm = $("#mwForm");
 
     // ===================== Approver Reject Modal (optional) =====================
 
@@ -150,12 +166,9 @@ $(function () {
                 }
             },
             {
-                data: "executionStatus",
-                width: "1%",
-                render: (v, _t, row) => {
-                    const effective = deriveExecutionStatus(row);
-                    return effective ? makeExecutionBadge(effective) : "";
-                }
+                data: null,
+                width: "12%",
+                render: (_v, _t, row) => renderExecutionStatus(row)
             },
             {
                 data: "id",
@@ -246,6 +259,8 @@ $(function () {
     });
 
     $logoutBtn.on("click", logout);
+    $viewAnalyticsBtns.on("click", openAnalyticsView);
+    $backToDashboardBtn.on("click", closeAnalyticsView);
 
 
     // ===================== Audit Log (Admin + Approver) =====================
@@ -255,15 +270,9 @@ $(function () {
 
     // ===================== Maintenance Window Events =====================
     $saveWindowBtn.on("click", createMaintenanceWindow);
+    initPanelToggle($showAddWindowBtn, $cancelAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
 
     $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
-
-    $addWindowPanel.on("shown.bs.collapse", function () {
-        $mwTableSection.addClass("d-none");
-    });
-    $addWindowPanel.on("hidden.bs.collapse", function () {
-        $mwTableSection.removeClass("d-none");
-    });
 
     $mwTableEl.on("click", ".js-mw-delete", function () {
         const id = $(this).data("id");
@@ -278,7 +287,7 @@ $(function () {
             return;
         }
         fillMwForm(row);
-        $addWindowPanel.collapse("show");
+        showPanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, $backFromWindowFormBtn);
     });
 
 // ===================== Approver Actions (Approve/Reject) =====================
@@ -327,12 +336,10 @@ $(function () {
     });
 
     // ===================== Network Element Events =====================
-    $addElementPanel.on("shown.bs.collapse", function () {
-        $neTableSection.addClass("d-none");
-    });
-    $addElementPanel.on("hidden.bs.collapse", function () {
-        $neTableSection.removeClass("d-none");
-    });
+    initPanelToggle($showAddElementBtn, $cancelAddElementBtn, $addElementPanel, $neTableSection, function () {
+        clearForm();
+        $saveElementBtn.removeData("editId");
+    }, $backFromElementFormBtn);
 
     $saveElementBtn.on("click", function () {
         const payload = readForm();
@@ -349,9 +356,10 @@ $(function () {
             })
                 .done((updated) => {
                     table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
-                    clearForm();
-                    $saveElementBtn.removeData("editId");
-                    $addElementPanel.collapse("hide");
+                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
+                        clearForm();
+                        $saveElementBtn.removeData("editId");
+                    }, $backFromElementFormBtn);
                 })
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Update failed");
@@ -366,8 +374,10 @@ $(function () {
             })
                 .done((created) => {
                     loadAll();
-                    clearForm();
-                    $addElementPanel.collapse("hide");
+                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
+                        clearForm();
+                        $saveElementBtn.removeData("editId");
+                    }, $backFromElementFormBtn);
                 })
                 .fail((xhr) => {
                     alert(errMsg(xhr) || "Create failed");
@@ -382,7 +392,7 @@ $(function () {
 
         fillForm(data);
         $saveElementBtn.data("editId", data.id);
-        $addElementPanel.collapse("show");
+        showPanel($showAddElementBtn, $addElementPanel, $neTableSection, $backFromElementFormBtn);
     });
 
     $neTableEl.on("click", ".js-toggle", function () {
@@ -391,6 +401,8 @@ $(function () {
 
         const isActive = String(data.status).toUpperCase() === "ACTIVE";
         const endpoint = isActive ? "deactivate" : "activate";
+        const actionLabel = isActive ? "deactivate" : "activate";
+        const confirmMessage = `Do you want to ${actionLabel} ${data.elementCode}?`;
 
         if (isActive) {
             canDeactivateNetworkElement(data.id)
@@ -400,6 +412,7 @@ $(function () {
                         alert(`Network element is already in use in "${mwName}".`);
                         return;
                     }
+                    if (!confirm(confirmMessage)) return;
                     patchElementStatus(data.id, endpoint);
                 })
                 .fail((xhr) => {
@@ -409,6 +422,7 @@ $(function () {
             return;
         }
 
+        if (!confirm(confirmMessage)) return;
         patchElementStatus(data.id, endpoint);
     });
 
@@ -416,17 +430,30 @@ $(function () {
         const row = table.row($(this).closest("tr"));
         const data = row.data();
 
-        if (!confirm(`Delete ${data.elementCode}?`)) return;
+        canDeactivateNetworkElement(data.id)
+            .done((result) => {
+                if (!result.allowed) {
+                    const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                    alert(`Network element is already in use in "${mwName}".`);
+                    return;
+                }
 
-        $.ajax({
-            url: `${API}/${data.id}`,
-            method: "DELETE"
-        })
-            .done(() => {
-                row.remove().draw(false);
+                if (!confirm(`Delete ${data.elementCode}?`)) return;
+
+                $.ajax({
+                    url: `${API}/${data.id}`,
+                    method: "DELETE"
+                })
+                    .done(() => {
+                        row.remove().draw(false);
+                    })
+                    .fail((xhr) => {
+                        alert(errMsg(xhr) || "Delete failed");
+                        console.log(xhr.responseText);
+                    });
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Delete failed");
+                alert(errMsg(xhr) || "Unable to validate schedule usage");
                 console.log(xhr.responseText);
             });
     });
@@ -474,6 +501,7 @@ $(function () {
             },
             error: function (xhr) {
                 clearSessionData();
+                alert("Invalid username or password.");
                 alert(errMsg(xhr) || "Login failed");
                 console.log(xhr.status, xhr.responseText);
             }
@@ -497,9 +525,11 @@ $(function () {
             url: "/api/v1/auth/logout",
             method: "POST"
         }).always(function () {
+            $("body").removeClass("analytics-mode");
             clearSessionData();
             $username.val("");
             $password.val("");
+            $analyticsView.addClass("d-none");
             hideAllRolePages();
             showLogin();
         });
@@ -528,6 +558,8 @@ $(function () {
 
     function routeByRole(role) {
         const r = String(role || "").toUpperCase();
+        activeRole = r;
+        $analyticsView.addClass("d-none");
         hideAllRolePages();
 
         if (r === "ADMIN") {
@@ -546,18 +578,179 @@ $(function () {
         }
     }
 
+    function openAnalyticsView() {
+        if (!window.Chart) {
+            alert("Chart.js is not available.");
+            return;
+        }
+
+        hideAllRolePages();
+        $analyticsView.removeClass("d-none");
+        $("body").addClass("analytics-mode");
+        renderAnalyticsDashboard();
+    }
+
+    function closeAnalyticsView() {
+        $analyticsView.addClass("d-none");
+        $("body").removeClass("analytics-mode");
+        routeByRole(activeRole || sessionStorage.getItem("role"));
+    }
+
+    function renderAnalyticsDashboard() {
+        $.get(ANALYTICS_API)
+            .done((dashboard) => {
+                drawMaintenanceStatusChart(dashboard.maintenanceStatusCounts || {});
+                drawApprovedWindowScheduleChart(dashboard.approvedWindowTimeline || []);
+                drawElementsByTypeChart(dashboard.elementsByType || {});
+                drawElementHealthChart(dashboard.elementsByStatus || {});
+                drawApprovalTrendChart(dashboard.approvalRejectionTrend || []);
+                drawTopImpactedElementsChart(dashboard.topImpactedElements || {});
+            })
+            .fail(() => {
+                alert("Failed to load analytics data.");
+            });
+    }
+
+    function mapToEntries(countMap) {
+        return Object.entries(countMap || {});
+    }
+
+    function createOrUpdateChart(canvasId, config) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+        charts[canvasId] = new Chart(canvas, config);
+    }
+
+    function drawMaintenanceStatusChart(statusCounts) {
+        const entries = mapToEntries(statusCounts);
+        createOrUpdateChart("chartMaintenanceStatus", {
+            type: "doughnut",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Windows",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#0d6efd", "#198754", "#dc3545", "#fd7e14", "#6c757d"]
+                }]
+            },
+            options: {responsive: true, maintainAspectRatio: false}
+        });
+    }
+
+    function formatHm(dateObj) {
+        const hh = String(dateObj.getHours()).padStart(2, "0");
+        const mm = String(dateObj.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+    }
+
+    function drawElementsByTypeChart(typeCounts) {
+        const entries = mapToEntries(typeCounts);
+        createOrUpdateChart("chartElementsByType", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#6f42c1"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
+    function drawElementHealthChart(healthCounts) {
+        const normalizedCounts = {
+            ACTIVE: Number(healthCounts.ACTIVE || 0),
+            DEACTIVE: Number(healthCounts.DEACTIVE || 0)
+        };
+        const entries = mapToEntries(normalizedCounts);
+        createOrUpdateChart("chartElementHealth", {
+            type: "pie",
+            data: {
+                labels: entries.map((e) => e[0] === "ACTIVE" ? "Active" : "Deactive"),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#198754", "#dc3545"]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom"
+                    }
+                }
+            }
+        });
+    }
+
+    function drawApprovalTrendChart(trend) {
+        const labels = (trend || []).map((p) => p.date);
+        const approved = (trend || []).map((p) => Number(p.approved || 0));
+        const rejected = (trend || []).map((p) => Number(p.rejected || 0));
+
+        createOrUpdateChart("chartApprovalTrend", {
+            type: "bar",
+            data: {
+                labels,
+                datasets: [
+                    {label: "Approved", data: approved, backgroundColor: "#198754"},
+                    {label: "Rejected", data: rejected, backgroundColor: "#dc3545"}
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+
+        $approvalTrendNote.text("Trend is aggregated by backend from maintenance window status by date.");
+    }
+
+    function drawTopImpactedElementsChart(topImpactedElements) {
+        const entries = mapToEntries(topImpactedElements);
+        createOrUpdateChart("chartTopImpactedElements", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Maintenance impact count",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#fd7e14"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: "y",
+                scales: {x: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
     // ===== Network Element Helpers =====
     function readForm() {
+        if (!validateForm($neForm)) return null;
+
         const elementCode = $neCode.val().trim();
         const name = $neName.val().trim();
         const elementType = $neType.val();
         const region = $neRegion.val();
         const status = $('input[name="neStatus"]:checked').val();
 
-        if (!elementCode || !name || !elementType || !region || !status) {
-            alert("Please fill all fields");
-            return null;
-        }
         return {elementCode, name, elementType, region, status};
     }
 
@@ -573,11 +766,43 @@ $(function () {
     }
 
     function clearForm() {
+        resetFormValidation($neForm);
         $neCode.val("");
         $neName.val("");
         $neType.val("");
         $neRegion.val("");
         $statusActive.prop("checked", true);
+    }
+
+    function initPanelToggle($showBtn, $cancelBtn, $panel, $tableSection, onHide, $backBtn) {
+        $showBtn.on("click", function () {
+            showPanel($showBtn, $panel, $tableSection, $backBtn);
+        });
+
+        $cancelBtn.on("click", function () {
+            hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+        });
+
+        if ($backBtn && $backBtn.length) {
+            $backBtn.on("click", function () {
+                hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+            });
+        }
+    }
+
+    function showPanel($showBtn, $panel, $tableSection, $backBtn) {
+        $panel.removeClass("d-none");
+        $tableSection.addClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.removeClass("d-none");
+        $showBtn.attr("aria-expanded", "true");
+    }
+
+    function hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn) {
+        $panel.addClass("d-none");
+        $tableSection.removeClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.addClass("d-none");
+        $showBtn.attr("aria-expanded", "false");
+        if (typeof onHide === "function") onHide();
     }
 
     function makeStatusBadge(status) {
@@ -640,6 +865,11 @@ $(function () {
         return "";
     }
 
+    function renderExecutionStatus(row) {
+        const effective = deriveExecutionStatus(row);
+        return effective ? makeExecutionBadge(effective) : '<span class="text-muted">-</span>';
+    }
+
     function deriveExecutionStatus(row) {
         const approval = String((row && row.windowStatus) || "").trim().toUpperCase();
         if (approval !== "APPROVED") return "";
@@ -684,9 +914,14 @@ $(function () {
                 (rows || [])
                     .filter((ne) => String((ne && ne.status) || "").trim().toUpperCase() === "ACTIVE")
                     .forEach((ne) => {
-                        const code = ne.elementCode || "";
-                        const name = ne.name || "";
-                        $mwElements.append(`<option value="${ne.id}">${code} - ${name}</option>`);
+                        const code = escapeHtml(ne.elementCode || "");
+                        const name = escapeHtml(ne.name || "");
+                        $mwElements.append(`
+                            <label class="mw-element-option">
+                                <input class="form-check-input" type="checkbox" value="${ne.id}">
+                                <span>${code} - ${name}</span>
+                            </label>
+                        `);
                     });
             })
             .fail((xhr) => {
@@ -723,8 +958,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done(() => {
-                    clearMwForm();
-                    $addWindowPanel.collapse("hide");
+                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
                     loadMaintenanceWindows();
                 })
                 .fail((xhr) => {
@@ -739,8 +973,7 @@ $(function () {
                 data: JSON.stringify(payload)
             })
                 .done(() => {
-                    clearMwForm();
-                    $addWindowPanel.collapse("hide");
+                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
                     loadMaintenanceWindows();
                 })
                 .fail((xhr) => {
@@ -845,6 +1078,9 @@ $(function () {
 
     function readMwForm() {
         applyMwDateConstraints();
+        if (!validateForm($mwForm)) return null;
+
+        const requestedById = Number(sessionStorage.getItem("userId"));
 
         const title = $mwTitle.val().trim();
         const startTime = $mwStart.val();
@@ -854,20 +1090,17 @@ $(function () {
         const endNum = document.getElementById("mwEnd").valueAsNumber;
         const nowNum = Date.now();
 
-        const selected = $mwElements.val() || [];
+        const selected = $mwElements.find('input:checked')
+            .map((_, el) => Number(el.value))
+            .get();
 
-        if (!title || !startTime || !endTime) {
-            alert("Please fill Title, Start, End");
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
             return null;
         }
 
         if (!selected.length) {
             alert("Please select at least one Network Element");
-            return null;
-        }
-
-        if (isNaN(startNum) || isNaN(endNum)) {
-            alert("Invalid date/time format");
             return null;
         }
 
@@ -880,30 +1113,40 @@ $(function () {
             alert("End Time must be after Start Time");
             return null;
         }
+
+        if (!requestedById || isNaN(requestedById)) {
+            alert("Session expired. Please login again.");
+            return null;
+        }
+
         return {
             title: title,
             description: "",
             startTime: toSeconds(startTime),
             endTime: toSeconds(endTime),
-            networkElementIds: selected.map((x) => Number(x)),
+            networkElementIds: selected,
         };
     }
 
     function clearMwForm() {
+        resetFormValidation($mwForm);
         $mwId.val("");
         $mwTitle.val("");
         $mwStart.val("");
         $mwEnd.val("");
-        $mwElements.val([]);
+        $mwElements.find("input").prop("checked", false);
         applyMwDateConstraints();
     }
 
     function fillMwForm(w) {
+        const selectedIds = new Set((w.networkElementIds || []).map(String));
         $mwId.val(w.id);
         $mwTitle.val(w.title || "");
         $mwStart.val(toDateTimeLocalValueFromServer(w.startTime));
         $mwEnd.val(toDateTimeLocalValueFromServer(w.endTime));
-        $mwElements.val((w.networkElementIds || []).map(String));
+        $mwElements.find("input").each((_, el) => {
+            $(el).prop("checked", selectedIds.has(String(el.value)));
+        });
         applyMwDateConstraints();
     }
 
@@ -926,6 +1169,20 @@ $(function () {
     function toDateTimeLocalValue(d) {
         const pad = (n) => String(n).padStart(2, "0");
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function validateForm($form) {
+        const form = $form.get(0);
+        if (!form.checkValidity()) {
+            $form.addClass("was-validated");
+            form.reportValidity();
+            return false;
+        }
+        return true;
+    }
+
+    function resetFormValidation($form) {
+        $form.removeClass("was-validated");
     }
 
     function toSeconds(dtLocal) {
@@ -977,4 +1234,168 @@ $(function () {
             return null;
         }
     }
+
+
+    function drawApprovedWindowScheduleChart(approvedWindows) {
+        const $container = $("#approvedWindowScheduleChartWrap");
+        if (!$container.length) return;
+
+        if (charts["chartApprovedWindowSchedule"]) {
+            charts["chartApprovedWindowSchedule"].destroy();
+            delete charts["chartApprovedWindowSchedule"];
+        }
+
+        if (!approvedWindows || approvedWindows.length === 0) {
+            $container.html('<div class="text-muted small">No approved bookings found.</div>');
+            return;
+        }
+
+        const dataPoints = approvedWindows.map(w => {
+            const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
+            const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
+            const title = String(w.title || "UNTITLED");
+
+            return {
+                x: [start, end],
+                y: title,
+                title: title,
+                barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
+                startLabel: formatDateTime(w.startTime),
+                endLabel: formatDateTime(w.endTime)
+            };
+        });
+
+        const chartHeight = Math.max(260, dataPoints.length * 38 + 60);
+        const containerWidth = $container.innerWidth() || 0;
+        const chartWidth = Math.max(containerWidth, 1200, dataPoints.length * 140);
+
+        $container.html(`
+        <div class="approved-window-chart-inner" style="height: ${chartHeight}px; width: ${chartWidth}px;">
+            <canvas id="chartApprovedWindowSchedule"></canvas>
+        </div>
+    `);
+
+        const minStart = Math.min(...dataPoints.map(point => point.x[0]));
+        const maxEnd = Math.max(...dataPoints.map(point => point.x[1]));
+        const totalRange = Math.max(maxEnd - minStart, 1);
+        const axisPadding = Math.max(totalRange * 0.04, 60 * 60 * 1000);
+
+        const ctx = document.getElementById("chartApprovedWindowSchedule");
+        if (!ctx) return;
+
+        charts["chartApprovedWindowSchedule"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+                datasets: [{
+                    label: "Approved Window Schedule",
+                    data: dataPoints,
+                    backgroundColor: "#2563eb",
+                    borderColor: "#1d4ed8",
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barThickness: 34,
+                    minBarLength: 100
+                }]
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: {
+                    xAxisKey: "x",
+                    yAxisKey: "y"
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) {
+                                return items[0].raw.title;
+                            },
+                            label: function (context) {
+                                const raw = context.raw;
+                                return `${raw.startLabel} → ${raw.endLabel}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: "linear",
+                        position: "top",
+                        min: minStart - axisPadding,
+                        max: maxEnd + axisPadding,
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.28)",
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            callback: function (value) {
+                                return formatApprovedWindowAxis(value);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: "Date / Time"
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.22)",
+                            lineWidth: 1
+                        },
+                        title: {
+                            display: true,
+                            text: "Maintenance Window"
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                id: "approvedWindowBarLabels",
+                afterDatasetsDraw(chart) {
+                    const {ctx} = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const dataset = chart.data.datasets[0];
+
+                    ctx.save();
+                    ctx.font = "12px sans-serif";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    meta.data.forEach((bar, index) => {
+                        const raw = dataset.data[index];
+                        const label = String(raw.barLabel || "");
+                        const x = (bar.x + bar.base) / 2;
+                        const y = bar.y;
+
+                        ctx.fillText(label, x, y);
+                    });
+
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function formatApprovedWindowAxis(value) {
+        const d = new Date(Number(value));
+        if (isNaN(d.getTime())) return "";
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
 });
