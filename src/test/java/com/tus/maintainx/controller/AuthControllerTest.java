@@ -40,7 +40,7 @@ class AuthControllerTest {
 
     @Test
     void login_validCredentials_returns200AndToken() throws Exception {
-        LoginRequest req = new LoginRequest("engineer1", "pass");
+        LoginRequest req = new LoginRequest("engineer1@mail.com", "pass");
 
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
@@ -48,17 +48,17 @@ class AuthControllerTest {
 
         UserEntity user = new UserEntity();
         user.setId(10L);
-        user.setUsername("engineer1");
+        user.setUsername("engineer1@mail.com");
         user.setRole("ENGINEER");
 
-        when(userRepo.findByUsername("engineer1")).thenReturn(user);
-        when(jwtUtils.generateToken("engineer1", "ENGINEER")).thenReturn("jwt-token");
+        when(userRepo.findByUsername("engineer1@mail.com")).thenReturn(user);
+        when(jwtUtils.generateToken("engineer1@mail.com", "ENGINEER")).thenReturn("jwt-token");
 
-        mvc.perform(post("/api/v1/auth/login")
+                mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("engineer1"))
+                .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
                 .andExpect(jsonPath("$.role").value("ENGINEER"))
                 .andExpect(jsonPath("$.token").value("jwt-token"))
                 .andExpect(jsonPath("$.message").value("Login successful"));
@@ -66,7 +66,7 @@ class AuthControllerTest {
 
     @Test
     void login_invalidCredentials_returns401() throws Exception {
-        LoginRequest req = new LoginRequest("bad", "bad");
+        LoginRequest req = new LoginRequest("bad@mail.com", "bad");
 
         when(authManager.authenticate(any())).thenThrow(new RuntimeException("bad creds"));
 
@@ -75,6 +75,17 @@ class AuthControllerTest {
                         .content(om.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+    @Test
+    void login_invalidEmail_returns400() throws Exception {
+        LoginRequest req = new LoginRequest("bad", "pass");
+
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(om.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Username must be a valid email address"));
     }
 
     @Test

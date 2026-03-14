@@ -11,12 +11,12 @@ class EngineerMaintenanceWindowFlowE2ETest extends AbstractSeleniumFlowTest {
 
     @Test
     void engineerCanBookMaintenanceWindow() {
-        saveUser("eng", "ENGINEER", "eng123");
+        saveUser("eng@mail.com", "ENGINEER", "eng123");
         saveNetworkElement("NE-101", "Booking Candidate A", "CORE_ROUTER", "DUBLIN", "ACTIVE");
         saveNetworkElement("NE-102", "Booking Candidate B", "EDGE_SWITCH", "CORK", "ACTIVE");
 
         openAppAndRequireUiAssets();
-        login("eng", "eng123");
+        login("eng@mail.com", "eng123");
 
         waitForVisible(org.openqa.selenium.By.id("engineerPage"));
         waitForCondition(d -> !d.findElements(org.openqa.selenium.By.cssSelector("#mwElements input[type='checkbox']")).isEmpty());

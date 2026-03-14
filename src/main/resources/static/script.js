@@ -176,36 +176,7 @@ $(function () {
         ]
     });
 
-    const $pendingMwTableEl = $("#pendingMwTable");
-    let pendingMwTable = null;
-
-    if ($pendingMwTableEl.length) {
-        pendingMwTable = $pendingMwTableEl.DataTable({
-            dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
-            pageLength: 5,
-            lengthChange: true,
-            lengthMenu: [[5, 10, 20], [5, 10, 20]],
-            scrollY: "320px",
-            scrollCollapse: true,
-            autoWidth: false,
-            rowId: "id",
-            columnDefs: [{orderable: false, targets: 6}],
-            columns: [
-                {data: "title", width: "20%", render: (v) => escapeHtml(v || "")},
-                {data: "requestedByUsername", width: "12%", render: (v) => escapeHtml(v || "")},
-                {data: "networkElementNames", width: "24%", render: (v) => renderNetworkElements(v)},
-                {data: "startTime", width: "13%", render: (v) => escapeHtml(formatDateTime(v))},
-                {data: "endTime", width: "13%", render: (v) => escapeHtml(formatDateTime(v))},
-                {data: "windowStatus", width: "12%", render: (v) => escapeHtml(v || "")},
-                {
-                    data: "id", width: "6%", render: (id) => `
-      <button class="btn btn-success btn-sm js-approve" data-id="${id}">Approve</button>
-      <button class="btn btn-danger btn-sm js-reject" data-id="${id}">Reject</button>
-    `
-                }
-            ]
-        });
-    }
+    const $pendingMwCards = $("#pendingMwCards");
 
 
     // ===================== Audit Log DataTable =====================
@@ -289,7 +260,7 @@ $(function () {
     });
 
 // ===================== Approver Actions (Approve/Reject) =====================
-    $pendingMwTableEl.on("click", ".js-approve", function () {
+    $pendingMwCards.on("click", ".js-approve", function () {
         const id = Number($(this).data("id"));
         if (!id) return;
 
@@ -298,7 +269,7 @@ $(function () {
         approveMaintenanceWindow(id);
     });
 
-    $pendingMwTableEl.on("click", ".js-reject", function () {
+    $pendingMwCards.on("click", ".js-reject", function () {
         const id = Number($(this).data("id"));
         if (!id) return;
 
@@ -461,9 +432,15 @@ $(function () {
     function login() {
         const username = $username.val().trim();
         const password = $password.val();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!username || !password) {
-            alert("Enter username and password");
+            alert("Enter email and password");
+            return;
+        }
+
+        if (!emailPattern.test(username)) {
+            alert("Enter a valid email address like admin@mail.com");
             return;
         }
 
@@ -500,7 +477,6 @@ $(function () {
             },
             error: function (xhr) {
                 clearSessionData();
-                alert("Invalid username or password.");
                 alert(errMsg(xhr) || "Login failed");
                 console.log(xhr.status, xhr.responseText);
             }
@@ -980,19 +956,82 @@ $(function () {
     }
 
     function loadPendingMaintenanceWindows() {
-        if (!pendingMwTable) return;
+        if (!$pendingMwCards.length) return;
 
         $.get(MW_API)
             .done((rows) => {
                 const pending = (rows || [])
                     .filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING")
                     .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
-                pendingMwTable.clear().rows.add(pending).draw();
+                renderPendingMaintenanceWindowCards(pending);
             })
             .fail((xhr) => {
                 alert("Failed to load pending maintenance windows");
                 console.log(xhr.responseText);
             });
+    }
+
+    function renderPendingMaintenanceWindowCards(rows) {
+        const list = Array.isArray(rows) ? rows : [];
+        if (!list.length) {
+            $pendingMwCards.html(`
+                <div class="col-12">
+                    <div class="alert alert-light border text-muted mb-0">
+                        No pending maintenance requests.
+                    </div>
+                </div>
+            `);
+            return;
+        }
+
+        const cardsHtml = list.map((row) => {
+            const id = Number(row && row.id);
+            const title = escapeHtml((row && row.title) || "");
+            const requestedBy = escapeHtml((row && row.requestedByUsername) || "");
+            const startTime = escapeHtml(formatDateTime(row && row.startTime));
+            const endTime = escapeHtml(formatDateTime(row && row.endTime));
+            const status = escapeHtml((row && row.windowStatus) || "");
+            const elementsHtml = renderNetworkElements(row && row.networkElementNames)
+                || '<span class="text-muted">No elements linked</span>';
+            const windowNumber = escapeHtml(formatMwNumber(id));
+
+            return `
+                <div class="col-12 col-md-6 col-xl-4" data-card-id="${id}">
+                    <div class="card h-100 shadow-sm border border-secondary-subtle">
+                        <div class="card-body d-flex flex-column gap-3">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="text-muted small">${windowNumber}</div>
+                                    <h5 class="card-title mb-1">${title}</h5>
+                                    <div class="small text-muted">Requested by ${requestedBy || "Unknown"}</div>
+                                </div>
+                                <span class="badge text-bg-warning">${status || "PENDING"}</span>
+                            </div>
+                            <div>
+                                <div class="small text-muted mb-1">Network Elements</div>
+                                ${elementsHtml}
+                            </div>
+                            <div class="row g-2 small">
+                                <div class="col-sm-6">
+                                    <div class="text-muted">Start</div>
+                                    <div>${startTime || "-"}</div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="text-muted">End</div>
+                                    <div>${endTime || "-"}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-auto">
+                                <button class="btn btn-success btn-sm js-approve" data-id="${id}" type="button">Approve</button>
+                                <button class="btn btn-danger btn-sm js-reject" data-id="${id}" type="button">Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        $pendingMwCards.html(cardsHtml);
     }
 
 

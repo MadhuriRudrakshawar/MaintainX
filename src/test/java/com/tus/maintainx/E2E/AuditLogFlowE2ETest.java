@@ -12,12 +12,12 @@ class AuditLogFlowE2ETest extends AbstractSeleniumFlowTest {
 
     @Test
     void adminCanOpenAuditLogAndSeeRecentEntries() {
-        saveUser("admin", "ADMIN", "admin123");
+        saveUser("admin@mail.com", "ADMIN", "admin123");
         saveAuditLog(
                 AuditEntityType.NETWORK_ELEMENT,
                 1L,
                 AuditAction.CREATED,
-                "admin",
+                "admin@mail.com",
                 "ADMIN",
                 "Network element created from audit flow seed",
                 LocalDateTime.now().minusMinutes(5)
@@ -26,14 +26,14 @@ class AuditLogFlowE2ETest extends AbstractSeleniumFlowTest {
                 AuditEntityType.MAINTENANCE_WINDOW,
                 10L,
                 AuditAction.APPROVED,
-                "appr",
+                "appr@mail.com",
                 "APPROVER",
                 "Maintenance window approved from audit flow seed",
                 LocalDateTime.now().minusMinutes(2)
         );
 
         openAppAndRequireUiAssets();
-        login("admin", "admin123");
+        login("admin@mail.com", "admin123");
 
         waitForVisible(org.openqa.selenium.By.id("adminPage"));
         driver.findElement(org.openqa.selenium.By.id("adminAuditBtn")).click();

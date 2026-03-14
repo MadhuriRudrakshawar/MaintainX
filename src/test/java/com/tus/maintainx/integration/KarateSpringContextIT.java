@@ -25,10 +25,10 @@ class KarateSpringContextIT {
 
         Map<String, Object> seed = karateSpringContext.seedBaselineData();
 
-        assertEquals("admin", seed.get("adminUsername"));
-        assertEquals("approver1", seed.get("approverUsername"));
-        assertEquals("engineer1", seed.get("engineerUsername"));
+        assertEquals("admin@mail.com", seed.get("adminUsername"));
+        assertEquals("approver1@mail.com", seed.get("approverUsername"));
+        assertEquals("engineer1@mail.com", seed.get("engineerUsername"));
         assertNotNull(seed.get("approvedWindowId"));
-        assertNotNull(karateSpringContext.tokenFor("admin"));
+        assertNotNull(karateSpringContext.tokenFor("admin@mail.com"));
     }
 }

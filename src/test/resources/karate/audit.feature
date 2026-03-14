@@ -14,9 +14,9 @@ Feature: Audit log API
     Then status 200
     And match response == '#[3]'
     And match response[0].action == 'APPROVED'
-    And match response[0].username == 'approver1'
+    And match response[0].username == 'approver1@mail.com'
     And match response[1].action == 'CREATED'
-    And match response[1].username == 'engineer1'
+    And match response[1].username == 'engineer1@mail.com'
     And match response[2].entityType == 'NETWORK_ELEMENT'
 
   Scenario: approver can filter audit logs by entity type and entity id

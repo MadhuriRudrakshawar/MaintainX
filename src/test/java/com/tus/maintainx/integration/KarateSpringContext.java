@@ -67,9 +67,9 @@ public class KarateSpringContext {
     public Map<String, Object> seedBaselineData() {
         reset();
 
-        saveUser("admin", "ADMIN", "admin-pass");
-        saveUser("approver1", "APPROVER", "approve-pass");
-        UserEntity engineer = saveUser("engineer1", "ENGINEER", "engineer-pass");
+        saveUser("admin@mail.com", "ADMIN", "admin-pass");
+        saveUser("approver1@mail.com", "APPROVER", "approve-pass");
+        UserEntity engineer = saveUser("engineer1@mail.com", "ENGINEER", "engineer-pass");
 
         NetworkElementEntity coreRouter = networkElementRepository.save(
                 new NetworkElementEntity(null, "NE-CORE-1", "Core Router", "ROUTER", "Dublin", "ACTIVE")
@@ -89,7 +89,7 @@ public class KarateSpringContext {
                         .endTime(LocalDateTime.of(2026, 3, 10, 12, 15))
                         .windowStatus("APPROVED")
                         .rejectionReason(null)
-                        .decidedBy("approver1")
+                        .decidedBy("approver1@mail.com")
                         .executionStatus(ExecutionStatus.PLANNED)
                         .requestedBy(engineer)
                         .networkElements(linkedSet(coreRouter, accessSwitch))
@@ -119,7 +119,7 @@ public class KarateSpringContext {
                         .endTime(LocalDateTime.of(2026, 3, 10, 11, 15))
                         .windowStatus("REJECTED")
                         .rejectionReason("Overlap detected")
-                        .decidedBy("approver1")
+                        .decidedBy("approver1@mail.com")
                         .executionStatus(ExecutionStatus.PLANNED)
                         .requestedBy(engineer)
                         .networkElements(linkedSet(accessSwitch))
@@ -130,7 +130,7 @@ public class KarateSpringContext {
                 .entityType(AuditEntityType.MAINTENANCE_WINDOW)
                 .entityId(approvedWindow.getId())
                 .action(AuditAction.APPROVED)
-                .username("approver1")
+                .username("approver1@mail.com")
                 .roleName("APPROVER")
                 .details("Approved core router upgrade")
                 .createdAt(LocalDateTime.of(2026, 3, 10, 9, 0))
@@ -139,7 +139,7 @@ public class KarateSpringContext {
                 .entityType(AuditEntityType.MAINTENANCE_WINDOW)
                 .entityId(approvedWindow.getId())
                 .action(AuditAction.CREATED)
-                .username("engineer1")
+                .username("engineer1@mail.com")
                 .roleName("ENGINEER")
                 .details("Created core router upgrade")
                 .createdAt(LocalDateTime.of(2026, 3, 10, 8, 0))
@@ -148,18 +148,18 @@ public class KarateSpringContext {
                 .entityType(AuditEntityType.NETWORK_ELEMENT)
                 .entityId(coreRouter.getId())
                 .action(AuditAction.UPDATED)
-                .username("admin")
+                .username("admin@mail.com")
                 .roleName("ADMIN")
                 .details("Updated router metadata")
                 .createdAt(LocalDateTime.of(2026, 3, 9, 17, 30))
                 .build());
 
         return Map.of(
-                "adminUsername", "admin",
+                "adminUsername", "admin@mail.com",
                 "adminPassword", "admin-pass",
-                "approverUsername", "approver1",
+                "approverUsername", "approver1@mail.com",
                 "approverPassword", "approve-pass",
-                "engineerUsername", "engineer1",
+                "engineerUsername", "engineer1@mail.com",
                 "engineerPassword", "engineer-pass",
                 "approvedWindowId", approvedWindow.getId(),
                 "pendingWindowId", pendingWindow.getId(),

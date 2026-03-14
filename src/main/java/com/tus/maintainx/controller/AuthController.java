@@ -7,6 +7,7 @@ import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +32,7 @@ public class AuthController {
 
     @Operation(summary = "Login user", description = "Authenticates user and returns JWT token")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest req) {
 
         String username = (req.getUsername() == null) ? "" : req.getUsername().trim();
         String password = (req.getPassword() == null) ? "" : req.getPassword();

@@ -12,15 +12,15 @@ class AnalyticsDashboardFlowE2ETest extends AbstractSeleniumFlowTest {
 
     @Test
     void adminCanOpenAnalyticsDashboard() {
-        UserEntity admin = saveUser("admin", "ADMIN", "admin123");
-        UserEntity engineer = saveUser("eng", "ENGINEER", "eng123");
+        UserEntity admin = saveUser("admin@mail.com", "ADMIN", "admin123");
+        UserEntity engineer = saveUser("eng@mail.com", "ENGINEER", "eng123");
         NetworkElementEntity core = saveNetworkElement("NE-301", "Analytics Core", "CORE_ROUTER", "DUBLIN", "ACTIVE");
         NetworkElementEntity edge = saveNetworkElement("NE-302", "Analytics Edge", "EDGE_SWITCH", "CORK", "DEACTIVE");
         saveMaintenanceWindow(
                 "Approved Analytics Window",
                 "APPROVED",
                 engineer,
-                "appr",
+                "appr@mail.com",
                 LocalDateTime.now().plusDays(3).withHour(1).withMinute(0).withSecond(0).withNano(0),
                 LocalDateTime.now().plusDays(3).withHour(3).withMinute(0).withSecond(0).withNano(0),
                 core,

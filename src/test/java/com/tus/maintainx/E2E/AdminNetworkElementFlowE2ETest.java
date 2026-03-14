@@ -8,11 +8,11 @@ class AdminNetworkElementFlowE2ETest extends AbstractSeleniumFlowTest {
 
     @Test
     void adminCanCreateNetworkElementFromDashboard() {
-        saveUser("admin", "ADMIN", "admin123");
+        saveUser("admin@mail.com", "ADMIN", "admin123");
         saveNetworkElement("NE-001", "Existing Core Router", "CORE_ROUTER", "DUBLIN", "ACTIVE");
 
         openAppAndRequireUiAssets();
-        login("admin", "admin123");
+        login("admin@mail.com", "admin123");
 
         waitForVisible(org.openqa.selenium.By.id("adminPage"));
         waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "NE-001");

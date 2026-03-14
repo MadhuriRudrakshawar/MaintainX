@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -38,6 +39,9 @@ class NetworkElementApiIT {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void cleanDb() {
         repo.deleteAll();
@@ -45,7 +49,7 @@ class NetworkElementApiIT {
             UserEntity user = new UserEntity();
             user.setUsername("it-user");
             user.setRole("USER");
-            user.setPassword("test-password");
+            user.setPassword(passwordEncoder.encode("test-password"));
             userRepository.save(user);
         }
     }

@@ -1,5 +1,7 @@
 package com.tus.maintainx.config;
 
+import com.tus.maintainx.entity.UserEntity;
+import com.tus.maintainx.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +23,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -42,7 +45,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String username = jwtUtils.getUsername(token);
-        String role = jwtUtils.getRole(token);
+        UserEntity user = userRepository.findByUsername(username);
+        if (user == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String role = user.getRole();
         String normalizedRole = role == null ? "USER" : role.trim().toUpperCase();
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

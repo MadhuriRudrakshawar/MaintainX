@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -53,6 +54,9 @@ abstract class AbstractSeleniumFlowTest {
 
     @Autowired
     protected AuditLogRepository auditLogRepository;
+
+    @Autowired
+    protected PasswordEncoder passwordEncoder;
 
     protected WebDriver driver;
     protected WebDriverWait wait;
@@ -139,7 +143,7 @@ abstract class AbstractSeleniumFlowTest {
         UserEntity user = new UserEntity();
         user.setUsername(username);
         user.setRole(role);
-        user.setPassword(password);
+        user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
     }
 

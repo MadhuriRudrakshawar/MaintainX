@@ -10,10 +10,10 @@ class LoginFlowE2ETest extends AbstractSeleniumFlowTest {
 
     @Test
     void engineerCanLoginAndLogout() {
-        saveUser("eng", "ENGINEER", "eng123");
+        saveUser("eng@mail.com", "ENGINEER", "eng123");
 
         openAppAndRequireUiAssets();
-        login("eng", "eng123");
+        login("eng@mail.com", "eng123");
 
         waitForVisible(org.openqa.selenium.By.id("engineerPage"));
         assertEquals("ENGINEER", executeScript("return sessionStorage.getItem('role');"));
