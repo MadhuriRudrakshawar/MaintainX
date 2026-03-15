@@ -47,7 +47,6 @@ $(function () {
     const $analyticsView = $("#analyticsView");
     const $viewAnalyticsBtns = $(".js-view-analytics");
     const $backToDashboardBtn = $("#backToDashboardBtn");
-    const $approvalTrendNote = $("#approvalTrendNote");
 
     const charts = {};
     let activeRole = "";
@@ -210,9 +209,8 @@ $(function () {
     // ===================== Initial Routing =====================
     const savedToken = sessionStorage.getItem(TOKEN_KEY);
     const savedRole = sessionStorage.getItem("role");
-    const savedUserId = sessionStorage.getItem("userId");
 
-    if (savedToken && savedRole && savedUserId) {
+    if (savedToken && savedRole) {
         showHome();
         routeByRole(savedRole);
     } else {
@@ -306,8 +304,7 @@ $(function () {
 
     // ===================== Network Element Events =====================
     initPanelToggle($showAddElementBtn, $cancelAddElementBtn, $addElementPanel, $neTableSection, function () {
-        clearForm();
-        $saveElementBtn.removeData("editId");
+        resetElementEditor();
     }, $backFromElementFormBtn);
 
     $saveElementBtn.on("click", function () {
@@ -315,45 +312,20 @@ $(function () {
         if (!payload) return;
 
         const editId = $(this).data("editId");
-
-        if (editId) {
-            $.ajax({
-                url: `${API}/${editId}`,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(payload)
-            })
-                .done((updated) => {
-                    table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
-                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
-                        clearForm();
-                        $saveElementBtn.removeData("editId");
-                    }, $backFromElementFormBtn);
-                })
-                .fail((xhr) => {
-                    alert(errMsg(xhr) || "Update failed");
-                    console.log(xhr.responseText);
-                });
-        } else {
-            $.ajax({
-                url: API,
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(payload)
-            })
-                .done((created) => {
-                    table.row.add(created).draw(false);
-                    hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, function () {
-                        clearForm();
-                        $saveElementBtn.removeData("editId");
-                    }, $backFromElementFormBtn);
-                })
-
-                .fail((xhr) => {
-                    alert(errMsg(xhr) || "Create failed");
-                    console.log(xhr.responseText);
-                });
-        }
+        saveJson({
+            url: editId ? `${API}/${editId}` : API,
+            method: editId ? "PUT" : "POST",
+            payload,
+            onSuccess: (rowData) => {
+                if (editId) {
+                    updateTableRow(table, rowData);
+                } else {
+                    table.row.add(rowData).draw(false);
+                }
+                hideElementPanel();
+            },
+            errorMessage: editId ? "Update failed" : "Create failed"
+        });
     });
 
     $neTableEl.on("click", ".js-edit", function () {
@@ -418,17 +390,15 @@ $(function () {
                         row.remove().draw(false);
                     })
                     .fail((xhr) => {
-                        alert(errMsg(xhr) || "Delete failed");
-                        console.log(xhr.responseText);
+                        handleAjaxError(xhr, "Delete failed");
                     });
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Unable to validate schedule usage");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Unable to validate schedule usage");
             });
     });
 
-    // ===================== Functions =====================
+    // ===================== Auth + Page Flow =====================
     function login() {
         const username = $username.val().trim();
         const password = $password.val();
@@ -461,13 +431,6 @@ $(function () {
                 sessionStorage.setItem("role", res.role || "");
                 sessionStorage.setItem("username", res.username || username);
 
-                const loginUserId = res && (res.id ?? res.userId ?? res.userID ?? res.user_id);
-                if (loginUserId !== null && loginUserId !== undefined && String(loginUserId).trim() !== "") {
-                    sessionStorage.setItem("userId", String(loginUserId));
-                } else {
-                    sessionStorage.removeItem("userId");
-                }
-
                 showHome();
                 routeByRole(res.role);
 
@@ -483,15 +446,14 @@ $(function () {
         });
     }
 
+    // Load admin table rows.
     function loadAll() {
         $.get(API)
             .done((rows) => {
-                const sorted = (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
-                table.clear().rows.add(sorted).draw();
+                table.clear().rows.add(sortByIdDesc(rows)).draw();
             })
             .fail((xhr) => {
-                alert("Failed to load network elements");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Failed to load network elements");
             });
     }
 
@@ -514,7 +476,6 @@ $(function () {
         sessionStorage.removeItem(TOKEN_KEY);
         sessionStorage.removeItem("role");
         sessionStorage.removeItem("username");
-        sessionStorage.removeItem("userId");
     }
 
     function showHome() {
@@ -553,6 +514,7 @@ $(function () {
         }
     }
 
+    // Open analytics screen.
     function openAnalyticsView() {
         if (!window.Chart) {
             alert("Chart.js is not available.");
@@ -571,6 +533,7 @@ $(function () {
         routeByRole(activeRole || sessionStorage.getItem("role"));
     }
 
+    // Fetch analytics data and draw charts.
     function renderAnalyticsDashboard() {
         $.get(ANALYTICS_API)
             .done((dashboard) => {
@@ -578,14 +541,13 @@ $(function () {
                 drawApprovedWindowScheduleChart(dashboard.approvedWindowTimeline || []);
                 drawElementsByTypeChart(dashboard.elementsByType || {});
                 drawElementHealthChart(dashboard.elementsByStatus || {});
-                drawApprovalTrendChart(dashboard.approvalRejectionTrend || []);
-                drawTopImpactedElementsChart(dashboard.topImpactedElements || {});
             })
             .fail(() => {
                 alert("Failed to load analytics data.");
             });
     }
 
+    // ===================== Analytics Charts =====================
     function mapToEntries(countMap) {
         return Object.entries(countMap || {});
     }
@@ -671,52 +633,169 @@ $(function () {
         });
     }
 
-    function drawApprovalTrendChart(trend) {
-        const labels = (trend || []).map((p) => p.date);
-        const approved = (trend || []).map((p) => Number(p.approved || 0));
-        const rejected = (trend || []).map((p) => Number(p.rejected || 0));
+    function drawApprovedWindowScheduleChart(approvedWindows) {
+        const $container = $("#approvedWindowScheduleChartWrap");
+        if (!$container.length) return;
 
-        createOrUpdateChart("chartApprovalTrend", {
-            type: "bar",
-            data: {
-                labels,
-                datasets: [
-                    {label: "Approved", data: approved, backgroundColor: "#198754"},
-                    {label: "Rejected", data: rejected, backgroundColor: "#dc3545"}
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
-            }
+        if (charts["chartApprovedWindowSchedule"]) {
+            charts["chartApprovedWindowSchedule"].destroy();
+            delete charts["chartApprovedWindowSchedule"];
+        }
+
+        if (!approvedWindows || approvedWindows.length === 0) {
+            $container.html('<div class="text-muted small">No approved bookings found.</div>');
+            return;
+        }
+
+        const dataPoints = approvedWindows.map(w => {
+            const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
+            const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
+            const title = String(w.title || "UNTITLED");
+
+            return {
+                x: [start, end],
+                y: title,
+                title: title,
+                barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
+                startLabel: formatDateTime(w.startTime),
+                endLabel: formatDateTime(w.endTime)
+            };
         });
 
-        $approvalTrendNote.text("Trend is aggregated by backend from maintenance window status by date.");
-    }
+        const chartHeight = Math.max(260, dataPoints.length * 38 + 60);
+        const containerWidth = $container.innerWidth() || 0;
+        const chartWidth = Math.max(containerWidth, 1200, dataPoints.length * 140);
 
-    function drawTopImpactedElementsChart(topImpactedElements) {
-        const entries = mapToEntries(topImpactedElements);
-        createOrUpdateChart("chartTopImpactedElements", {
+        $container.html(`
+        <div class="approved-window-chart-inner" style="height: ${chartHeight}px; width: ${chartWidth}px;">
+            <canvas id="chartApprovedWindowSchedule"></canvas>
+        </div>
+    `);
+
+        const minStart = Math.min(...dataPoints.map(point => point.x[0]));
+        const maxEnd = Math.max(...dataPoints.map(point => point.x[1]));
+        const totalRange = Math.max(maxEnd - minStart, 1);
+        const axisPadding = Math.max(totalRange * 0.04, 60 * 60 * 1000);
+
+        const ctx = document.getElementById("chartApprovedWindowSchedule");
+        if (!ctx) return;
+
+        charts["chartApprovedWindowSchedule"] = new Chart(ctx, {
             type: "bar",
             data: {
-                labels: entries.map(e => e[0]),
                 datasets: [{
-                    label: "Maintenance impact count",
-                    data: entries.map(e => e[1]),
-                    backgroundColor: "#fd7e14"
+                    label: "Approved Window Schedule",
+                    data: dataPoints,
+                    backgroundColor: "#2563eb",
+                    borderColor: "#1d4ed8",
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barThickness: 34,
+                    minBarLength: 100
                 }]
             },
             options: {
+                indexAxis: "y",
                 responsive: true,
                 maintainAspectRatio: false,
-                indexAxis: "y",
-                scales: {x: {beginAtZero: true, ticks: {precision: 0}}}
-            }
+                parsing: {
+                    xAxisKey: "x",
+                    yAxisKey: "y"
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) {
+                                return items[0].raw.title;
+                            },
+                            label: function (context) {
+                                const raw = context.raw;
+                                return `${raw.startLabel} â†’ ${raw.endLabel}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: "linear",
+                        position: "top",
+                        min: minStart - axisPadding,
+                        max: maxEnd + axisPadding,
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.28)",
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            callback: function (value) {
+                                return formatApprovedWindowAxis(value);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: "Date / Time"
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.22)",
+                            lineWidth: 1
+                        },
+                        title: {
+                            display: true,
+                            text: "Maintenance Window"
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                id: "approvedWindowBarLabels",
+                afterDatasetsDraw(chart) {
+                    const {ctx} = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const dataset = chart.data.datasets[0];
+
+                    ctx.save();
+                    ctx.font = "12px sans-serif";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    meta.data.forEach((bar, index) => {
+                        const raw = dataset.data[index];
+                        const label = String(raw.barLabel || "");
+                        const x = (bar.x + bar.base) / 2;
+                        const y = bar.y;
+
+                        ctx.fillText(label, x, y);
+                    });
+
+                    ctx.restore();
+                }
+            }]
         });
     }
 
-    // ===== Network Element Helpers =====
+    function formatApprovedWindowAxis(value) {
+        const d = new Date(Number(value));
+        if (isNaN(d.getTime())) return "";
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
+    // ===================== Network Elements =====================
     function readForm() {
         if (!validateForm($neForm)) return null;
 
@@ -746,6 +825,16 @@ $(function () {
         $statusActive.prop("checked", true);
     }
 
+    function resetElementEditor() {
+        clearForm();
+        $saveElementBtn.removeData("editId");
+    }
+
+    function hideElementPanel() {
+        hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, resetElementEditor, $backFromElementFormBtn);
+    }
+
+    // Reuse the same form panel toggle logic.
     function initPanelToggle($showBtn, $cancelBtn, $panel, $tableSection, onHide, $backBtn) {
         $showBtn.on("click", function () {
             showPanel($showBtn, $panel, $tableSection, $backBtn);
@@ -790,11 +879,10 @@ $(function () {
             method: "PATCH"
         })
             .done((updated) => {
-                table.row("#" + $.escapeSelector(String(updated.id))).data(updated).draw(false);
+                updateTableRow(table, updated);
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Status update failed");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Status update failed");
             });
     }
 
@@ -829,6 +917,7 @@ $(function () {
     }
 
 
+    // ===================== Maintenance Windows =====================
     function makeExecutionBadge(status) {
         const s = String(status || "").toUpperCase();
         if (s === "COMPLETED") return '<span class="badge text-bg-success">COMPLETED</span>';
@@ -878,7 +967,7 @@ $(function () {
         return `<div class="d-flex flex-column gap-1">${items}</div>`;
     }
 
-// ===== MW Helpers =====
+    // Load active elements for MW form.
     function loadNetworkElementsForMw() {
         $.get(API)
             .done((rows) => {
@@ -905,14 +994,13 @@ $(function () {
     function loadMaintenanceWindows() {
         $.get(MW_API)
             .done((rows) => {
-                const sorted = (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+                const sorted = sortByIdDesc(rows);
                 mwCache.clear();
                 sorted.forEach((w) => mwCache.set(Number(w.id), w));
                 mwTable.clear().rows.add(sorted).draw();
             })
             .fail((xhr) => {
-                alert("Failed to load maintenance windows");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Failed to load maintenance windows");
             });
     }
 
@@ -921,38 +1009,16 @@ $(function () {
         if (!payload) return;
 
         const editId = $mwId.val().trim();
-
-        if (editId) {
-            $.ajax({
-                url: `${MW_API}/${editId}`,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(payload)
-            })
-                .done(() => {
-                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
-                    loadMaintenanceWindows();
-                })
-                .fail((xhr) => {
-                    alert(errMsg(xhr) || "Update failed");
-                    console.log(xhr.responseText);
-                });
-        } else {
-            $.ajax({
-                url: MW_API,
-                method: "POST",
-                contentType: "application/json",
-                data: JSON.stringify(payload)
-            })
-                .done(() => {
-                    hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
-                    loadMaintenanceWindows();
-                })
-                .fail((xhr) => {
-                    alert(errMsg(xhr) || "Create failed");
-                    console.log(xhr.responseText);
-                });
-        }
+        saveJson({
+            url: editId ? `${MW_API}/${editId}` : MW_API,
+            method: editId ? "PUT" : "POST",
+            payload,
+            onSuccess: () => {
+                hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
+                loadMaintenanceWindows();
+            },
+            errorMessage: editId ? "Update failed" : "Create failed"
+        });
     }
 
     function loadPendingMaintenanceWindows() {
@@ -960,14 +1026,12 @@ $(function () {
 
         $.get(MW_API)
             .done((rows) => {
-                const pending = (rows || [])
-                    .filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING")
-                    .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+                const pending = sortByIdDesc(rows)
+                    .filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING");
                 renderPendingMaintenanceWindowCards(pending);
             })
             .fail((xhr) => {
-                alert("Failed to load pending maintenance windows");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Failed to load pending maintenance windows");
             });
     }
 
@@ -1035,7 +1099,7 @@ $(function () {
     }
 
 
-    // ===================== Audit Log functions =====================
+    // ===================== Audit + Approvals =====================
     function openAuditLog() {
         if (!auditModal) {
             alert("Audit modal not available");
@@ -1059,8 +1123,7 @@ $(function () {
                 auditTable.clear().rows.add(sorted).draw();
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Failed to load audit logs");
-                console.log(xhr && xhr.responseText ? xhr.responseText : xhr);
+                handleAjaxError(xhr, "Failed to load audit logs");
             });
     }
 
@@ -1075,8 +1138,7 @@ $(function () {
                 // optional: refresh engineer list if they have it open later
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Approve failed");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Approve failed");
             });
     }
 
@@ -1092,8 +1154,7 @@ $(function () {
                 loadPendingMaintenanceWindows();
             })
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Reject failed");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Reject failed");
             });
     }
 
@@ -1106,8 +1167,7 @@ $(function () {
         })
             .done(() => loadMaintenanceWindows())
             .fail((xhr) => {
-                alert(errMsg(xhr) || "Delete failed");
-                console.log(xhr.responseText);
+                handleAjaxError(xhr, "Delete failed");
             });
     }
 
@@ -1194,6 +1254,7 @@ $(function () {
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
+    // ===================== Shared Helpers =====================
     function validateForm($form) {
         const form = $form.get(0);
         if (!form.checkValidity()) {
@@ -1258,167 +1319,31 @@ $(function () {
         }
     }
 
-
-    function drawApprovedWindowScheduleChart(approvedWindows) {
-        const $container = $("#approvedWindowScheduleChartWrap");
-        if (!$container.length) return;
-
-        if (charts["chartApprovedWindowSchedule"]) {
-            charts["chartApprovedWindowSchedule"].destroy();
-            delete charts["chartApprovedWindowSchedule"];
-        }
-
-        if (!approvedWindows || approvedWindows.length === 0) {
-            $container.html('<div class="text-muted small">No approved bookings found.</div>');
-            return;
-        }
-
-        const dataPoints = approvedWindows.map(w => {
-            const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
-            const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
-            const title = String(w.title || "UNTITLED");
-
-            return {
-                x: [start, end],
-                y: title,
-                title: title,
-                barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
-                startLabel: formatDateTime(w.startTime),
-                endLabel: formatDateTime(w.endTime)
-            };
-        });
-
-        const chartHeight = Math.max(260, dataPoints.length * 38 + 60);
-        const containerWidth = $container.innerWidth() || 0;
-        const chartWidth = Math.max(containerWidth, 1200, dataPoints.length * 140);
-
-        $container.html(`
-        <div class="approved-window-chart-inner" style="height: ${chartHeight}px; width: ${chartWidth}px;">
-            <canvas id="chartApprovedWindowSchedule"></canvas>
-        </div>
-    `);
-
-        const minStart = Math.min(...dataPoints.map(point => point.x[0]));
-        const maxEnd = Math.max(...dataPoints.map(point => point.x[1]));
-        const totalRange = Math.max(maxEnd - minStart, 1);
-        const axisPadding = Math.max(totalRange * 0.04, 60 * 60 * 1000);
-
-        const ctx = document.getElementById("chartApprovedWindowSchedule");
-        if (!ctx) return;
-
-        charts["chartApprovedWindowSchedule"] = new Chart(ctx, {
-            type: "bar",
-            data: {
-                datasets: [{
-                    label: "Approved Window Schedule",
-                    data: dataPoints,
-                    backgroundColor: "#2563eb",
-                    borderColor: "#1d4ed8",
-                    borderWidth: 1,
-                    borderRadius: 4,
-                    borderSkipped: false,
-                    barThickness: 34,
-                    minBarLength: 100
-                }]
-            },
-            options: {
-                indexAxis: "y",
-                responsive: true,
-                maintainAspectRatio: false,
-                parsing: {
-                    xAxisKey: "x",
-                    yAxisKey: "y"
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: function (items) {
-                                return items[0].raw.title;
-                            },
-                            label: function (context) {
-                                const raw = context.raw;
-                                return `${raw.startLabel} → ${raw.endLabel}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        type: "linear",
-                        position: "top",
-                        min: minStart - axisPadding,
-                        max: maxEnd + axisPadding,
-                        grid: {
-                            display: true,
-                            color: "rgba(15, 23, 42, 0.28)",
-                            lineWidth: 1
-                        },
-                        ticks: {
-                            maxTicksLimit: 8,
-                            callback: function (value) {
-                                return formatApprovedWindowAxis(value);
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: "Date / Time"
-                        }
-                    },
-                    y: {
-                        grid: {
-                            display: true,
-                            color: "rgba(15, 23, 42, 0.22)",
-                            lineWidth: 1
-                        },
-                        title: {
-                            display: true,
-                            text: "Maintenance Window"
-                        }
-                    }
-                }
-            },
-            plugins: [{
-                id: "approvedWindowBarLabels",
-                afterDatasetsDraw(chart) {
-                    const {ctx} = chart;
-                    const meta = chart.getDatasetMeta(0);
-                    const dataset = chart.data.datasets[0];
-
-                    ctx.save();
-                    ctx.font = "12px sans-serif";
-                    ctx.fillStyle = "#ffffff";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-
-                    meta.data.forEach((bar, index) => {
-                        const raw = dataset.data[index];
-                        const label = String(raw.barLabel || "");
-                        const x = (bar.x + bar.base) / 2;
-                        const y = bar.y;
-
-                        ctx.fillText(label, x, y);
-                    });
-
-                    ctx.restore();
-                }
-            }]
-        });
+    function handleAjaxError(xhr, fallbackMessage) {
+        alert(errMsg(xhr) || fallbackMessage);
+        console.log(xhr && xhr.responseText ? xhr.responseText : xhr);
     }
 
-    function formatApprovedWindowAxis(value) {
-        const d = new Date(Number(value));
-        if (isNaN(d.getTime())) return "";
+    function sortByIdDesc(rows) {
+        return (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+    }
 
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mi = String(d.getMinutes()).padStart(2, "0");
+    function updateTableRow(dataTable, rowData) {
+        dataTable.row("#" + $.escapeSelector(String(rowData.id))).data(rowData).draw(false);
+    }
 
-        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    function saveJson({url, method, payload, onSuccess, errorMessage}) {
+        $.ajax({
+            url,
+            method,
+            contentType: "application/json",
+            data: JSON.stringify(payload)
+        })
+            .done(onSuccess)
+            .fail((xhr) => {
+                handleAjaxError(xhr, errorMessage);
+            });
     }
 
 });
+

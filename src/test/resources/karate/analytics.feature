@@ -19,13 +19,6 @@ Feature: Analytics dashboard API
         REJECTED: 1
       }
       """
-    And match response.windowsByDate ==
-      """
-      {
-        '2026-03-10': 2,
-        '2026-03-11': 1
-      }
-      """
     And match response.elementsByType ==
       """
       {
@@ -39,20 +32,6 @@ Feature: Analytics dashboard API
       {
         ACTIVE: 2,
         MAINTENANCE: 1
-      }
-      """
-    And match response.bookedSlotsByHour['08:00-09:00'] == 1
-    And match response.bookedSlotsByHour['10:00-11:00'] == 2
-    And match response.bookedSlotsByHour['11:00-12:00'] == 1
-    And match response.bookedSlotsByDateHour['2026-03-10|10'] == 2
-    And match response.bookedSlotsByDateHour['2026-03-10|11'] == 1
-    And match response.bookedSlotsByDateHour['2026-03-11|08'] == 1
-    And match response.topImpactedElements ==
-      """
-      {
-        'Access Switch': 2,
-        'Core Router': 1,
-        'Edge Firewall': 1
       }
       """
     And match response.approvedWindowTimeline ==
