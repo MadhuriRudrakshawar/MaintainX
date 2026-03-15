@@ -13,30 +13,60 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <link href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="images/logo.jpg" rel="icon" type="image/jpeg">
     <link href="styles.css" rel="stylesheet">
 </head>
 
 <body class="app-shell bg-body-tertiary">
 
 <!-- ===================== LOGIN VIEW ===================== -->
-<div class="container mt-5" id="loginView" style="max-width: 360px;">
-    <h4 class="text-center">MaintainX</h4>
-    <p class="text-center">Login</p>
+<div class="container py-5 py-lg-6 login-shell" id="loginView">
+    <div class="row justify-content-center">
+        <div class="col-12 col-sm-11 col-md-9 col-lg-7 col-xl-6">
+            <div class="card border-0 shadow-lg login-card">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="text-center mb-4">
+                        <div class="login-logo-box mx-auto mb-3">
+                            <img alt="MaintainX" class="login-logo-image" height="72" src="images/logo.jpg" width="72">
+                        </div>
+                        <h1 class="login-title mb-2">
+                            Maintain<span class="app-brand-accent">X</span>
+                        </h1>
+                        <p class="login-subtitle mb-2">Network Maintenance Scheduler</p>
+                        <p class="login-tagline mb-0">Schedule • Approve • Track maintenance</p>
+                    </div>
 
-    <label for="username">Email</label>
-    <input class="form-control mb-3" id="username" placeholder="name@mail.com" type="email">
+                    <div class="login-form-panel">
+                        <h2 class="login-form-title text-center mb-4">Login</h2>
 
-    <label for="password">Password</label>
-    <input class="form-control mb-3" id="password" placeholder="Password" type="password">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="username">Email</label>
+                            <input class="form-control form-control-lg" id="username" placeholder="name@mail.com" type="email">
+                        </div>
 
-    <button class="btn btn-primary w-100" id="loginBtn">Login</button>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold" for="password">Password</label>
+                            <input class="form-control form-control-lg" id="password" placeholder="Password" type="password">
+                        </div>
+
+                        <button class="btn btn-primary btn-lg w-100" id="loginBtn">Login</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ===================== HOME VIEW ===================== -->
 <div class="d-none container-fluid px-3 px-lg-4 py-3" id="homeView">
 
     <div class="d-flex justify-content-between align-items-center mb-3 app-topbar">
-        <h4 class="m-0">MaintainX</h4>
+        <div class="app-brand">
+            <img alt="MaintainX" class="app-brand-logo" height="32" src="images/logo.jpg" width="32">
+            <span class="app-brand-wordmark">
+                Maintain<span class="app-brand-accent">X</span>
+            </span>
+        </div>
         <button class="btn btn-outline-secondary btn-sm" id="logoutBtn">
             <i class="bi bi-box-arrow-right me-1"></i> Logout
         </button>
@@ -144,7 +174,7 @@
         <div class="container mt-4 px-0 flex-grow-1 d-flex" id="neTableSection">
             <div class="card shadow-sm border-0 table-card w-100">
                 <div class="card-body d-flex flex-column p-3 p-lg-4">
-                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3 table-card-header">
                         <div>
                             <h6 class="mb-1">Network Elements</h6>
                             <p class="section-description mb-0">This table lists all network elements with their type, region, and
@@ -292,7 +322,7 @@
         <div class="container mt-4 px-0 flex-grow-1 d-flex" id="mwTableSection">
             <div class="card shadow-sm border-0 table-card w-100">
                 <div class="card-body d-flex flex-column p-3 p-lg-4">
-                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-2 mb-3 table-card-header">
                         <div>
                             <h6 class="mb-1">Maintenance Windows</h6>
                             <p class="section-description mb-0">This table shows scheduled maintenance windows and their approval
@@ -349,13 +379,13 @@
                                id="auditTable">
                             <thead class="table-dark">
                             <tr>
-                                <th class="text-nowrap">Time</th>
-                                <th class="text-nowrap">Entity Type</th>
-                                <th class="text-nowrap">Entity ID</th>
-                                <th class="text-nowrap">Action</th>
-                                <th class="text-nowrap">Username</th>
-                                <th class="text-nowrap">Role</th>
-                                <th>Details</th>
+                                <th class="text-nowrap" style="width: 14%;">Time</th>
+                                <th class="text-nowrap" style="width: 17%;">Entity Type</th>
+                                <th class="text-nowrap" style="width: 11%;">Entity ID</th>
+                                <th class="text-nowrap" style="width: 10%;">Action</th>
+                                <th class="text-nowrap" style="width: 16%;">Username</th>
+                                <th class="text-nowrap" style="width: 10%;">Role</th>
+                                <th style="width: 22%;">Details</th>
                             </tr>
                             </thead>
                             <tbody></tbody>

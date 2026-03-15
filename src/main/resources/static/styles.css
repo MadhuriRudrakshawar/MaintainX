@@ -1,10 +1,171 @@
 .app-shell {
     min-height: 100vh;
     padding: 0;
+    background:
+        radial-gradient(circle at top left, rgba(26, 86, 219, 0.12), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(13, 110, 253, 0.1), transparent 30%),
+        linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+}
+
+.app-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.app-brand-login {
+    text-align: center;
+}
+
+.app-brand-logo {
+    display: block;
+    width: 2rem;
+    height: 2rem;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0.55rem;
+    flex: 0 0 auto;
+    box-shadow: 0 0.4rem 1rem rgba(26, 86, 219, 0.18);
+}
+
+.app-brand-login .app-brand-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.7rem;
+}
+
+.app-brand-wordmark {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #111827;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.app-topbar .app-brand-wordmark {
+    font-size: 1.4rem;
+}
+
+.app-brand-accent {
+    color: #1a56db;
+}
+
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.login-shell > .row {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 42rem;
+    margin: 0 auto;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+}
+
+.login-logo-box {
+    width: 6rem;
+    height: 6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1.5rem;
+    background: linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
+    border: 1px solid rgba(26, 86, 219, 0.12);
+    box-shadow: 0 1rem 2.5rem rgba(26, 86, 219, 0.14);
+}
+
+.login-logo-image {
+    width: 4.5rem;
+    height: 4.5rem;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 1rem;
+}
+
+.login-title {
+    font-size: clamp(2rem, 4vw, 2.7rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.login-subtitle {
+    font-size: 1.18rem;
+    font-weight: 600;
+    color: #1e3a5f;
+}
+
+.login-tagline {
+    font-size: 1rem;
+    color: #64748b;
+}
+
+.login-form-panel {
+    width: min(100%, 32rem);
+    margin: 0 auto;
+    padding: 1.1rem 1.1rem 1.2rem;
+    border-radius: 1.25rem;
+    border: 1px solid #cfd9e8;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 0.5rem 1.5rem rgba(15, 23, 42, 0.05);
+}
+
+.login-form-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+}
+
+#loginView .form-label {
+    font-size: 0.95rem;
+    margin-bottom: 0.45rem;
+}
+
+#loginView .form-control {
+    border-radius: 0.9rem;
+    border-color: #d6dfeb;
+    font-size: 0.95rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+}
+
+#loginView .form-control:focus {
+    border-color: #7fb0ff;
+    box-shadow: 0 0 0 0.25rem rgba(26, 86, 219, 0.12);
+}
+
+#loginView #loginBtn {
+    border-radius: 0.95rem;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    padding-top: 0.72rem;
+    padding-bottom: 0.72rem;
+    box-shadow: 0 0.75rem 1.4rem rgba(13, 110, 253, 0.16);
 }
 
 #homeView {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#homeView.d-none {
+    display: none !important;
 }
 
 .app-topbar {
@@ -20,22 +181,67 @@
     min-height: calc(100vh - 6.5rem);
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .table-card {
     border-radius: 1rem;
     background: #fff;
+    height: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.08) !important;
+}
+
+.table-card .card-body {
+    position: relative;
+}
+
+.table-card-header {
+    padding-right: 16rem;
+}
+
+.table-card-header h6 {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+#neTableSection,
+#mwTableSection {
+    min-height: 0;
 }
 
 .datatable-shell,
 .dataTables_wrapper {
+    display: flex;
+    flex: 1 1 auto;
     min-height: 100%;
+    min-width: 0;
+}
+
+.datatable-shell {
+    min-height: 0;
 }
 
 .dataTables_wrapper {
-    display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    height: 100%;
+    min-height: 0;
+}
+
+.datatable-shell > .dataTables_wrapper > .dataTables_filter {
+    position: absolute;
+    top: -4.15rem;
+    right: 0;
+    margin: 0;
+    z-index: 2;
+}
+
+.dataTables_wrapper > .dataTables_info,
+.dataTables_wrapper > .dataTables_length,
+.dataTables_wrapper > .dataTables_paginate {
+    font-size: 0.92rem;
 }
 
 .dataTables_filter,
@@ -61,6 +267,10 @@
     padding: 0.375rem 0.75rem;
 }
 
+.dataTables_filter input {
+    width: 11rem;
+}
+
 .dataTables_filter input:focus,
 .dataTables_length select:focus {
     border-color: #86b7fe;
@@ -72,6 +282,7 @@
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
+    min-height: 0;
     border: 1px solid #e9ecef;
     border-radius: 0.85rem;
     overflow: hidden;
@@ -85,6 +296,8 @@
 
 .dataTables_scrollBody {
     flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
     border-bottom: 0 !important;
 }
 
@@ -111,10 +324,35 @@
     padding-top: 0.9rem;
     padding-bottom: 0.9rem;
     vertical-align: middle;
+    border-color: #edf1f5;
+}
+
+.dataTables_scrollBody table.dataTable {
+    margin-top: 0 !important;
+}
+
+#neTable_wrapper,
+#mwTable_wrapper {
+    min-height: 0;
+}
+
+#neTable_wrapper .dataTables_scrollBody,
+#mwTable_wrapper .dataTables_scrollBody {
+    height: clamp(360px, calc(100vh - 24rem), 760px) !important;
+    max-height: clamp(360px, calc(100vh - 24rem), 760px) !important;
+}
+
+#neTable_wrapper table.dataTable tbody tr,
+#mwTable_wrapper table.dataTable tbody tr {
+    height: clamp(68px, calc((100vh - 28rem) / 5), 108px);
 }
 
 .dataTables_wrapper table.dataTable tbody tr:hover {
     background-color: #f8fbff;
+}
+
+.dataTables_wrapper table.dataTable tbody tr:nth-child(even) {
+    background-color: #fcfdff;
 }
 
 .dt-bottom {
@@ -122,17 +360,63 @@
     gap: 0.75rem;
     flex-wrap: wrap;
     color: #6c757d;
+    padding-top: 0.35rem;
+    border-top: 1px solid #edf1f5;
 }
 
 .dataTables_paginate .paginate_button {
     border-radius: 0.5rem !important;
     border: 0 !important;
+    min-width: 2.25rem;
 }
 
 .dataTables_paginate .paginate_button.current,
 .dataTables_paginate .paginate_button.current:hover {
     background: #0d6efd !important;
     color: #fff !important;
+}
+
+.btn-group-sm > .btn {
+    --bs-btn-padding-y: 0.3rem;
+    --bs-btn-padding-x: 0.65rem;
+}
+
+#auditModal .dataTables_wrapper {
+    gap: 0.5rem;
+}
+
+#auditModal .dataTables_filter {
+    margin-bottom: 0.25rem;
+}
+
+#auditModal .dataTables_filter label {
+    justify-content: flex-end;
+}
+
+#auditModal .dataTables_filter input {
+    width: 12rem;
+}
+
+#auditModal .dataTables_scrollBody {
+    max-height: min(46vh, 360px) !important;
+}
+
+#auditModal .dataTables_scrollHeadInner,
+#auditModal .dataTables_scrollHeadInner table,
+#auditModal .dataTables_scrollBody table {
+    width: 100% !important;
+}
+
+#auditTable {
+    table-layout: fixed;
+}
+
+#auditModal table.dataTable thead th {
+    white-space: nowrap;
+}
+
+#auditModal table.dataTable tbody td {
+    word-break: break-word;
 }
 
 .analytics-section {
@@ -211,6 +495,35 @@ body.analytics-mode {
 }
 
 @media (max-width: 768px) {
+    .login-shell {
+        align-items: flex-start;
+    }
+
+    .login-card {
+        border-radius: 1.15rem;
+    }
+
+    .login-logo-box {
+        width: 5.25rem;
+        height: 5.25rem;
+        border-radius: 1.2rem;
+    }
+
+    .login-logo-image {
+        width: 4rem;
+        height: 4rem;
+    }
+
+    .login-form-panel {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    #homeView {
+        min-height: auto;
+    }
+
     .dashboard-page {
         min-height: auto;
     }
@@ -220,8 +533,35 @@ body.analytics-mode {
         backdrop-filter: none;
     }
 
+    .app-brand-wordmark {
+        font-size: 1rem;
+    }
+
+    .app-topbar .app-brand-wordmark {
+        font-size: 1.15rem;
+    }
+
     .table-card {
         border-radius: 0.75rem;
+    }
+
+    .table-card-header {
+        padding-right: 0;
+    }
+
+    .datatable-shell > .dataTables_wrapper > .dataTables_filter {
+        position: static;
+    }
+
+    #neTable_wrapper .dataTables_scrollBody,
+    #mwTable_wrapper .dataTables_scrollBody {
+        height: clamp(320px, calc(100vh - 22rem), 560px) !important;
+        max-height: clamp(320px, calc(100vh - 22rem), 560px) !important;
+    }
+
+    #neTable_wrapper table.dataTable tbody tr,
+    #mwTable_wrapper table.dataTable tbody tr {
+        height: auto;
     }
 
     .dt-bottom {
