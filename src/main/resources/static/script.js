@@ -593,7 +593,7 @@ $(function () {
                 datasets: [{
                     label: "Elements",
                     data: entries.map(e => e[1]),
-                    backgroundColor: "#6f42c1"
+                    backgroundColor: "#2563eb"
                 }]
             },
             options: {
@@ -1040,8 +1040,11 @@ $(function () {
         if (!list.length) {
             $pendingMwCards.html(`
                 <div class="col-12">
-                    <div class="alert alert-light border text-muted mb-0">
-                        No pending maintenance requests.
+                    <div class="approver-empty-state">
+                        <div class="fw-semibold mb-1">No pending requests</div>
+                        <div class="text-muted small mb-0">
+                            All maintenance requests have been reviewed. New requests will appear here when submitted.
+                        </div>
                     </div>
                 </div>
             `);
