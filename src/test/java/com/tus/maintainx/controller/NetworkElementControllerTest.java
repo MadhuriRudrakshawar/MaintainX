@@ -3,6 +3,7 @@ package com.tus.maintainx.controller;
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.dto.NetworkElementResponseDTO;
+import com.tus.maintainx.repository.UserRepository;
 import com.tus.maintainx.service.NetworkElementService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -36,6 +37,9 @@ class NetworkElementControllerTest {
 
     @MockitoBean
     JwtUtils jwtUtils;
+
+    @MockitoBean
+    UserRepository userRepository;
 
     @Test
     void createCheckTest() throws Exception {

@@ -28,11 +28,17 @@ pipeline {
       }
     }
 
-    stage('Build, Test, Coverage & Sonar') {
+    stage('Build, Test & Coverage') {
+      steps {
+        powershell 'mvn -B -T 1C clean package'
+      }
+    }
+
+    stage('SonarQube Analysis') {
       steps {
         withSonarQubeEnv('LocalSonar') {
           powershell '''
-            mvn -B -T 1C clean verify sonar:sonar `
+            mvn -B sonar:sonar `
               "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
               "-Dsonar.token=$env:SONAR_TOKEN"
           '''
@@ -42,7 +48,7 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 15, unit: 'MINUTES') {
+        timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
@@ -60,6 +66,9 @@ pipeline {
         keepAll: true,
         alwaysLinkToLastBuild: true
       ])
+
+      archiveArtifacts artifacts: 'target/screenshots/**', fingerprint: false, allowEmptyArchive: true
+      archiveArtifacts artifacts: 'target/*.jar', fingerprint: true, allowEmptyArchive: true
     }
   }
 }

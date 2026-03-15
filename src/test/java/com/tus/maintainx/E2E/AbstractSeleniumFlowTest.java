@@ -11,10 +11,16 @@ import com.tus.maintainx.repository.AuditLogRepository;
 import com.tus.maintainx.repository.MaintenanceWindowRepository;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
+import org.apache.commons.io.FileUtils;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -28,6 +34,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -60,6 +68,15 @@ abstract class AbstractSeleniumFlowTest {
 
     protected WebDriver driver;
     protected WebDriverWait wait;
+
+    @RegisterExtension
+    final TestWatcher screenshotOnFailure = new TestWatcher() {
+        @Override
+        @NullMarked
+        public void testFailed(ExtensionContext context, @Nullable Throwable cause) {
+            captureFailureScreenshot(context);
+        }
+    };
 
     @BeforeEach
     void setUp(TestInfo testInfo) {
@@ -203,6 +220,27 @@ abstract class AbstractSeleniumFlowTest {
 
     protected String baseUrl() {
         return "http://localhost:" + port + "/";
+    }
+
+    private void captureFailureScreenshot(ExtensionContext context) {
+        if (!(driver instanceof TakesScreenshot screenshotDriver)) {
+            return;
+        }
+
+        File screenshot = screenshotDriver.getScreenshotAs(OutputType.FILE);
+        File destination = new File("target/screenshots/" + screenshotFileName(context) + ".png");
+
+        try {
+            FileUtils.copyFile(screenshot, destination);
+        } catch (IOException ignored) {
+            // Avoid masking the original test failure if screenshot persistence fails.
+        }
+    }
+
+    private String screenshotFileName(ExtensionContext context) {
+        String className = context.getRequiredTestClass().getSimpleName();
+        String methodName = context.getRequiredTestMethod().getName();
+        return (className + "-" + methodName).replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     private WebDriver createDriverOrSkip(TestInfo testInfo) {
