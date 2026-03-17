@@ -30,7 +30,7 @@ pipeline {
 
     stage('Build, Test & Coverage') {
       steps {
-        powershell 'mvn -B -T 1C clean package'
+        powershell 'mvn -B -T 1C clean verify'
       }
     }
 
