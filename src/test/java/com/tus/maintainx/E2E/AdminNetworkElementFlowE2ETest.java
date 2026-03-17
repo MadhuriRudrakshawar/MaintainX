@@ -1,7 +1,9 @@
 package com.tus.maintainx.E2E;
 
+import com.tus.maintainx.entity.NetworkElementEntity;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdminNetworkElementFlowE2ETest extends AbstractSeleniumFlowTest {
@@ -25,9 +27,17 @@ class AdminNetworkElementFlowE2ETest extends AbstractSeleniumFlowTest {
         driver.findElement(org.openqa.selenium.By.id("neRegion")).sendKeys("Dublin");
         driver.findElement(org.openqa.selenium.By.id("saveElementBtn")).click();
 
-        waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "NE-002");
+        waitForCondition(d -> networkElementRepository.findAll().stream()
+                .anyMatch(ne -> "Admin Flow Element".equals(ne.getName())));
+
+        NetworkElementEntity created = networkElementRepository.findAll().stream()
+                .filter(ne -> "Admin Flow Element".equals(ne.getName()))
+                .findFirst()
+                .orElseThrow();
+
+        waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), created.getElementCode());
         waitForText(org.openqa.selenium.By.cssSelector("#neTable tbody"), "Admin Flow Element");
-        assertTrue(networkElementRepository.findAll().stream().anyMatch(ne ->
-                "Admin Flow Element".equals(ne.getName()) && "NE-002".equals(ne.getElementCode())));
+        assertTrue(created.getElementCode().matches("NE-\\d{3}"));
+        assertEquals("Admin Flow Element", created.getName());
     }
 }

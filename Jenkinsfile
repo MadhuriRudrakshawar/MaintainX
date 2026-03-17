@@ -46,6 +46,18 @@ pipeline {
       }
     }
 
+    stage('UI Tests (Selenium)') {
+      when {
+         expression { return params.RUN_UI_TESTS }
+         }
+         steps {
+            powershell '''
+                mvn -B -T 1C verify -DskipUnitTests=true -DskipITs=false "-Dit.test=*SeleniumIT" "-Dspring.profiles.active=ui-test" "-Dselenium.baseUrl=http://localhost:8080"
+             '''
+         }
+    }
+
+
     stage('Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
