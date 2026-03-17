@@ -7,6 +7,14 @@ pipeline {
     skipDefaultCheckout(true)
   }
 
+  parameters {
+     booleanParam(
+        name: 'RUN_UI_TESTS',
+        defaultValue: false,
+        description: 'Run Selenium UI tests'
+     )
+  }
+
   environment {
     GITHUB_TOKEN = credentials('github-token')
     SONAR_TOKEN  = credentials('sonar-token-maintainx')
@@ -49,7 +57,10 @@ pipeline {
          }
          steps {
             powershell '''
-                mvn -B -T 1C verify -DskipUnitTests=true -DskipITs=false "-Dit.test=*SeleniumIT" "-Dspring.profiles.active=ui-test" "-Dselenium.baseUrl=http://localhost:8080"
+                mvn -B -T 1C verify -DskipUnitTests=true -DskipITs=false
+                 "-Dit.test=*SeleniumIT"
+                 "-Dspring.profiles.active=ui-test"
+                 "-Dselenium.baseUrl=http://localhost:8080"
              '''
          }
     }
