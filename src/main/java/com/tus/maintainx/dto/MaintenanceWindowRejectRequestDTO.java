@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class RejectMaintenanceWindowRequestDTO {
+public class MaintenanceWindowRejectRequestDTO {
     @NotBlank
     private String reason;
 }

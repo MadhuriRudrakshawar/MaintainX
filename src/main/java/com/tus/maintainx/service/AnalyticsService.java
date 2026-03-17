@@ -46,6 +46,7 @@ public class AnalyticsService {
                 .filter(mw -> APPROVED.equalsIgnoreCase(normalize(mw.getWindowStatus(), "")))
                 .sorted(Comparator.comparing(MaintenanceWindowEntity::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(mw -> ApprovedWindowTimelineDTO.builder()
+                        .id(mw.getId())
                         .title(normalize(mw.getTitle(), UNTITLED))
                         .startTime(mw.getStartTime())
                         .endTime(mw.getEndTime())

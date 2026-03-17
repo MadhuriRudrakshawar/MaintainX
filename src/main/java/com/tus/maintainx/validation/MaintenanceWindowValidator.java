@@ -8,16 +8,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class MaintenanceWindowValidator {
 
+    private static final LocalTime RESTRICTED_START = LocalTime.of(9, 0);
+    private static final LocalTime RESTRICTED_END = LocalTime.of(11, 0);
+
     private final MaintenanceWindowRepository maintenanceWindowRepository;
 
     public void validateRequest(LocalDateTime start, LocalDateTime end, List<Long> networkElementIds) {
         validateDateRange(start, end);
+        validateRestrictedTime(start, end);
         validateNetworkElements(networkElementIds);
     }
 
@@ -38,6 +43,12 @@ public class MaintenanceWindowValidator {
     public void validateNetworkElements(List<Long> networkElementIds) {
         if (networkElementIds == null || networkElementIds.isEmpty()) {
             throw new BadRequestException("Please select at least one network element");
+        }
+    }
+
+    public void validateRestrictedTime(LocalDateTime start, LocalDateTime end) {
+        if (start.toLocalTime().isBefore(RESTRICTED_END) && end.toLocalTime().isAfter(RESTRICTED_START)) {
+            throw new BadRequestException("Request violates policy: restricted time window.");
         }
     }
 

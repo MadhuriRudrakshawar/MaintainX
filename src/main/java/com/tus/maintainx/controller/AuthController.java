@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Authentication", description = "APIs for user login and logout")
 public class AuthController {
 
@@ -43,21 +45,25 @@ public class AuthController {
             );
 
             if (!authentication.isAuthenticated()) {
+                log.warn("Login denied for user '{}': authentication not established", username);
                 return ResponseEntity.status(401)
                         .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
             }
 
             UserEntity user = userRepo.findByUsername(username);
             if (user == null) {
+                log.warn("Login denied for user '{}': user record not found after authentication", username);
                 return ResponseEntity.status(401)
                         .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
             }
 
             String role = (user.getRole() == null) ? "USER" : user.getRole().trim().toUpperCase();
             String token = jwtUtils.generateToken(user.getUsername(), role);
+            log.info("Login successful for user '{}' with role '{}'", user.getUsername(), role);
 
             return ResponseEntity.ok(new LoginResponse(user.getId(), user.getUsername(), role, token, "Login successful"));
         } catch (Exception ex) {
+            log.warn("Login failed for user '{}': {}", username, ex.getMessage());
             return ResponseEntity.status(401)
                     .body(new LoginResponse(null, username, null, null, LOGIN_DENIED));
         }
@@ -66,6 +72,7 @@ public class AuthController {
     @Operation(summary = "Logout user", description = "Logs out the current user")
     @PostMapping("/logout")
     public ResponseEntity<LoginResponse> logout() {
+        log.info("Logout request processed");
         return ResponseEntity.ok(new LoginResponse(null, null, null, null, "Logged out"));
     }
 }

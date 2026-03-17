@@ -1,5 +1,6 @@
 package com.tus.maintainx.config;
 
+import com.tus.maintainx.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

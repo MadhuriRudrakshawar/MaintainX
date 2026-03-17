@@ -1,5 +1,6 @@
-package com.tus.maintainx.config;
+package com.tus.maintainx.security;
 
+import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.UserRepository;
 import jakarta.servlet.FilterChain;

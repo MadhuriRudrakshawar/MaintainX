@@ -1,9 +1,9 @@
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
+import com.tus.maintainx.dto.MaintenanceWindowRejectRequestDTO;
 import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
 import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
-import com.tus.maintainx.dto.RejectMaintenanceWindowRequestDTO;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -77,7 +77,7 @@ public class MaintenanceWindowController {
     public ResponseEntity<MaintenanceWindowResponseDTO> reject(
             @Parameter(description = "Maintenance window id")
             @PathVariable Long id,
-            @Valid @RequestBody RejectMaintenanceWindowRequestDTO dto) {
+            @Valid @RequestBody MaintenanceWindowRejectRequestDTO dto) {
 
         return ResponseEntity.ok(service.reject(id, dto.getReason()));
     }

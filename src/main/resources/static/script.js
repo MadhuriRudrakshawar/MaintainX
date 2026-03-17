@@ -113,11 +113,12 @@ $(function () {
     // ===================== DataTables =====================
     const table = $neTableEl.DataTable({
         dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
-        pageLength: 5,
+        pageLength: 10,
         lengthChange: true,
         lengthMenu: [[5, 10, 20], [5, 10, 20]],
         scrollY: "320px",
         scrollCollapse: true,
+        order: [[0, "desc"]],
         autoWidth: false,
         rowId: "id",
         columnDefs: [{orderable: false, targets: 5}],
@@ -133,11 +134,12 @@ $(function () {
 
     const mwTable = $mwTableEl.DataTable({
         dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
-        pageLength: 5,
+        pageLength: 10,
         lengthChange: true,
         lengthMenu: [[5, 10, 20], [5, 10, 20]],
         scrollY: "320px",
         scrollCollapse: true,
+        order: [[0, "desc"]],
         autoWidth: false,
         rowId: "id",
         columnDefs: [{orderable: false, targets: 7}],
@@ -312,7 +314,11 @@ $(function () {
         if (!payload) return;
 
         const editId = $(this).data("editId");
-        saveJson({
+        const originalStatus = String($(this).data("originalStatus") || "").toUpperCase();
+        const nextStatus = String(payload.status || "").toUpperCase();
+        const isEditDeactivation = Boolean(editId) && originalStatus === "ACTIVE" && nextStatus === "DEACTIVE";
+
+        const submitElementForm = () => saveJson({
             url: editId ? `${API}/${editId}` : API,
             method: editId ? "PUT" : "POST",
             payload,
@@ -326,6 +332,25 @@ $(function () {
             },
             errorMessage: editId ? "Update failed" : "Create failed"
         });
+
+        if (!isEditDeactivation) {
+            submitElementForm();
+            return;
+        }
+
+        canDeactivateNetworkElement(editId)
+            .done((result) => {
+                if (!result.allowed) {
+                    const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                    alert(`Network element is already in use in "${mwName}". Can not be deactivated`);
+                    return;
+                }
+                submitElementForm();
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Unable to validate schedule usage");
+                console.log(xhr.responseText);
+            });
     });
 
     $neTableEl.on("click", ".js-edit", function () {
@@ -334,6 +359,7 @@ $(function () {
 
         fillForm(data);
         $saveElementBtn.data("editId", data.id);
+        $saveElementBtn.data("originalStatus", data.status);
         showPanel($showAddElementBtn, $addElementPanel, $neTableSection, $backFromElementFormBtn);
     });
 
@@ -403,14 +429,17 @@ $(function () {
         const username = $username.val().trim();
         const password = $password.val();
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const $loginError = $("#loginError");
+
+        $loginError.addClass("d-none").text("");
 
         if (!username || !password) {
-            alert("Enter email and password");
+            $loginError.text("Enter email and password").removeClass("d-none");
             return;
         }
 
         if (!emailPattern.test(username)) {
-            alert("Enter a valid email address like admin@mail.com");
+            $loginError.text("Enter a valid email address like admin@mail.com").removeClass("d-none");
             return;
         }
 
@@ -421,7 +450,7 @@ $(function () {
             data: JSON.stringify({username, password}),
             success: function (res) {
                 if (!res || !res.token) {
-                    alert("Login response missing token");
+                    $loginError.text("Login response missing token").removeClass("d-none");
                     clearSessionData();
                     showLogin();
                     return;
@@ -437,10 +466,11 @@ $(function () {
                 // clear login inputs
                 $username.val("");
                 $password.val("");
+                $loginError.addClass("d-none").text("");
             },
             error: function (xhr) {
                 clearSessionData();
-                alert(errMsg(xhr) || "Login failed");
+                $loginError.text(errMsg(xhr) || "Login failed").removeClass("d-none");
                 console.log(xhr.status, xhr.responseText);
             }
         });
@@ -486,6 +516,7 @@ $(function () {
     function showLogin() {
         $homeView.addClass("d-none");
         $loginView.removeClass("d-none");
+        $("#loginError").addClass("d-none").text("");
     }
 
     function hideAllRolePages() {
@@ -650,12 +681,14 @@ $(function () {
         const dataPoints = approvedWindows.map(w => {
             const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
             const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
+            const mwLabel = formatMwNumber(w.id);
             const title = String(w.title || "UNTITLED");
+            const displayLabel = mwLabel ? `${mwLabel} ${title}` : title;
 
             return {
                 x: [start, end],
-                y: title,
-                title: title,
+                y: displayLabel,
+                title: displayLabel,
                 barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
                 startLabel: formatDateTime(w.startTime),
                 endLabel: formatDateTime(w.endTime)
@@ -714,7 +747,7 @@ $(function () {
                             },
                             label: function (context) {
                                 const raw = context.raw;
-                                return `${raw.startLabel} â†’ ${raw.endLabel}`;
+                                return `${raw.startLabel} TO ${raw.endLabel}`;
                             }
                         }
                     }
@@ -828,6 +861,7 @@ $(function () {
     function resetElementEditor() {
         clearForm();
         $saveElementBtn.removeData("editId");
+        $saveElementBtn.removeData("originalStatus");
     }
 
     function hideElementPanel() {
@@ -1205,6 +1239,11 @@ $(function () {
             return null;
         }
 
+        if (isWithinRestrictedMwTime(startTime, endTime)) {
+            alert("Restricted time: 9:00 AM to 11:00 AM. Bookings are allowed only before or after this window.");
+            return null;
+        }
+
         return {
             title: title,
             description: "",
@@ -1244,6 +1283,32 @@ $(function () {
         const startValue = $mwStart.val();
         const endMin = (startValue && startValue > nowValue) ? startValue : nowValue;
         $mwEnd.attr("min", endMin);
+        applyMwTimePolicyFeedback($mwStart);
+        applyMwTimePolicyFeedback($mwEnd);
+    }
+
+    function applyMwTimePolicyFeedback($input) {
+        const value = $input.val();
+        if (!value) {
+            $input.get(0).setCustomValidity("");
+            return;
+        }
+        $input.get(0).setCustomValidity(
+            isWithinRestrictedMwTime($mwStart.val(), $mwEnd.val())
+                ? "Restricted time: 9:00 AM to 11:00 AM. Bookings are allowed only before or after this window."
+                : ""
+        );
+    }
+
+    function isWithinRestrictedMwTime(startValue, endValue) {
+        const startDate = new Date(startValue);
+        const endDate = new Date(endValue);
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+
+        const startMinutes = (startDate.getHours() * 60) + startDate.getMinutes();
+        const endMinutes = (endDate.getHours() * 60) + endDate.getMinutes();
+
+        return startMinutes < (11 * 60) && endMinutes > (9 * 60);
     }
 
     function nowLocalMinute() {

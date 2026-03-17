@@ -31,6 +31,8 @@
                         </div>
                         <div class="border rounded p-3">
                             <h2 class="h5 fw-bold text-center mb-3">Login</h2>
+                            <div aria-live="polite" class="alert alert-danger small py-2 d-none" id="loginError"
+                                 role="alert"></div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold" for="username">Email</label>
                                 <input class="form-control" id="username" placeholder="name@mail.com" type="email">
@@ -255,7 +257,7 @@
             <section class="dashboard-header-panel">
                 <div class="dashboard-header-panel__title">
                     <h5 class="mb-1">Engineer Dashboard</h5>
-                    <p class="text-muted small mb-0">Create and manage maintenance windows here.</p>
+                    <p class="text-muted small mb-0">Create and manage maintenance window bookings here.</p>
                 </div>
             </section>
             <div class="dashboard-actions">
@@ -263,9 +265,6 @@
                     <button aria-controls="addWindowPanel" aria-expanded="false"
                             class="btn btn-primary btn-sm" id="showAddWindowBtn" type="button">
                         <i class="bi bi-plus-lg me-1"></i> Book Maintenance Window
-                    </button>
-                    <button class="btn btn-primary btn-sm js-view-analytics" type="button">
-                        <i class="bi bi-graph-up me-1"></i> View Analytics
                     </button>
                 </div>
                 <button class="btn btn-primary btn-sm d-none" id="backFromWindowFormBtn" type="button">
@@ -282,7 +281,7 @@
                             <span class="fw-semibold">Maintenance Window Booking</span>
                         </div>
                         <form class="card-body needs-validation" id="mwForm" novalidate>
-                            <p class="text-muted small mb-3">Use this form to book or edit a maintenance window.</p>
+                            <p class="text-muted small mb-3">Form to booking or editing a maintenance window.</p>
 
                             <div class="mb-2">
                                 <label class="form-label small" for="mwTitle">Title</label>
@@ -309,6 +308,10 @@
                                 <label class="form-label small" for="mwEnd">End Time</label>
                                 <input class="form-control form-control-sm" id="mwEnd" required type="datetime-local">
                                 <div class="invalid-feedback">End Time is required.</div>
+                                <div class="form-text small">
+                                    <span class="text-danger">Note: Restricted time is 9:00 AM to 11:00 AM.</span>
+
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-end gap-2 mt-3">
@@ -413,7 +416,7 @@
 
         <!-- Chart sections — full width -->
         <div class="px-3 px-lg-4 pb-4">
-            <div class="border rounded p-2 mb-3 bg-light">
+            <div class="analytics-section-box border rounded p-2 mb-3 bg-light">
                 <h6 class="text-uppercase text-muted small fw-bold mb-2">Network Element Analysis</h6>
                 <div class="row g-2">
                     <div class="col-12 col-xl-6">
@@ -443,7 +446,7 @@
                 </div>
             </div>
 
-            <div class="border rounded p-2 bg-light">
+            <div class="analytics-section-box border rounded p-2 bg-light">
                 <h6 class="text-uppercase text-muted small fw-bold mb-2">Maintenance Window Analytics</h6>
                 <div class="row g-2">
                     <div class="col-12 col-xl-4">

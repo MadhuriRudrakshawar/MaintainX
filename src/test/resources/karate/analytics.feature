@@ -38,6 +38,7 @@ Feature: Analytics dashboard API
       """
       [
         {
+          id: '#number',
           title: 'Core Router Upgrade',
           startTime: '2026-03-10T10:15:00',
           endTime: '2026-03-10T12:15:00'

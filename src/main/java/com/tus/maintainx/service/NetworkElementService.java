@@ -7,6 +7,7 @@ import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.enums.AuditEntityType;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NetworkElementService {
 
     private final NetworkElementRepository networkElementRepository;
@@ -39,6 +41,7 @@ public class NetworkElementService {
                 AuditAction.CREATED,
                 "Network element created: " + saved.getElementCode()
         );
+        log.info("Network element {} created", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -83,6 +86,7 @@ public class NetworkElementService {
                 AuditAction.UPDATED,
                 "Network element updated: " + saved.getElementCode()
         );
+        log.info("Network element {} updated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -100,6 +104,7 @@ public class NetworkElementService {
                 AuditAction.DEACTIVATED,
                 "Network element deactivated: " + saved.getElementCode()
         );
+        log.info("Network element {} deactivated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -117,6 +122,7 @@ public class NetworkElementService {
                 AuditAction.ACTIVATED,
                 "Network element activated: " + saved.getElementCode()
         );
+        log.info("Network element {} activated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -130,6 +136,7 @@ public class NetworkElementService {
                 AuditAction.DELETED,
                 "Network element deleted: " + existing.getElementCode()
         );
+        log.info("Network element {} deleted", existing.getElementCode());
 
         networkElementRepository.deleteById(id);
     }
