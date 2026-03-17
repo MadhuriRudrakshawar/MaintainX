@@ -142,7 +142,10 @@ $(function () {
         order: [[0, "desc"]],
         autoWidth: false,
         rowId: "id",
-        columnDefs: [{orderable: false, targets: 7}],
+        columnDefs: [
+            {orderable: false, targets: 7},
+            {className: "text-center", targets: [6, 7]}
+        ],
         columns: [
             {data: "id", width: "8%", render: (v) => escapeHtml(formatMwNumber(v))},
             {data: "title", width: "18%", render: (v) => escapeHtml(v || "")},
@@ -962,7 +965,7 @@ $(function () {
 
     function renderExecutionStatus(row) {
         const effective = deriveExecutionStatus(row);
-        return effective ? makeExecutionBadge(effective) : '<span class="text-muted">-</span>';
+        return effective ? makeExecutionBadge(effective) : '<span class="text-muted">—</span>';
     }
 
     function deriveExecutionStatus(row) {

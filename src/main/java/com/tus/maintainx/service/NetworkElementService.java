@@ -5,12 +5,11 @@ import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.enums.AuditEntityType;
+import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -63,9 +62,7 @@ public class NetworkElementService {
 
     private NetworkElementEntity getById(Long id) {
         return networkElementRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Network element not found with id=" + id
+                .orElseThrow(() -> new NotFoundException("Network element not found with id=" + id
                 ));
     }
 

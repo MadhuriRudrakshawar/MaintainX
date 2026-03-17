@@ -31,7 +31,7 @@ class AuthControllerTest {
     @Autowired
     MockMvc mvc;
     @Autowired
-    ObjectMapper om;
+    ObjectMapper objectMapper;
 
     @MockitoBean
     UserRepository userRepo;
@@ -58,7 +58,7 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
-                        .content(om.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
                 .andExpect(jsonPath("$.role").value("ENGINEER"))
@@ -74,7 +74,7 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
-                        .content(om.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
@@ -89,7 +89,7 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
-                        .content(om.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
@@ -106,7 +106,7 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
-                        .content(om.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
@@ -119,7 +119,7 @@ class AuthControllerTest {
 
         mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
-                        .content(om.writeValueAsString(req)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Username must be a valid email address"));
     }

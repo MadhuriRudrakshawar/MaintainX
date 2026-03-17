@@ -232,8 +232,23 @@ body {
     justify-content: flex-end;
 }
 
+#auditModal .table-responsive {
+    padding: 0.5rem 0.25rem 0.25rem;
+}
+
+#auditModal .dt-bottom {
+    padding: 0.75rem 0.25rem 0.25rem;
+}
+
+#auditModal .dataTables_info,
+#auditModal .dataTables_length,
+#auditModal .dataTables_paginate {
+    padding-top: 0.25rem;
+}
+
 #auditModal .dataTables_scrollBody {
     max-height: min(46vh, 360px) !important;
+    overflow-y: scroll !important;
 }
 
 #auditModal .dataTables_scrollHeadInner,
@@ -248,10 +263,14 @@ body {
 
 #auditModal table.dataTable thead th {
     white-space: nowrap;
+    border-left: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
 }
 
 #auditModal table.dataTable tbody td {
     word-break: break-word;
+    border-left: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
 }
 
 /* Chart containers */

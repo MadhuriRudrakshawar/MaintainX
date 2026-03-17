@@ -4,6 +4,7 @@ import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.repository.UserRepository;
+import com.tus.maintainx.security.JwtAuthenticationFilter;
 import com.tus.maintainx.service.NetworkElementService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -40,6 +41,9 @@ class NetworkElementControllerTest {
 
     @MockitoBean
     UserRepository userRepository;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void createCheckTest() throws Exception {

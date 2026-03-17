@@ -1,10 +1,12 @@
 package com.tus.maintainx.controller;
 
+
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;
 import com.tus.maintainx.dto.MaintenanceWindowResponseDTO;
 import com.tus.maintainx.dto.MaintenanceWindowUpdateRequestDTO;
 import com.tus.maintainx.repository.UserRepository;
+import com.tus.maintainx.security.JwtAuthenticationFilter;
 import com.tus.maintainx.service.MaintenanceWindowService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ class MaintenanceWindowControllerTest {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void createMaintenanceWindowTest() throws Exception {

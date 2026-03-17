@@ -16,13 +16,9 @@ public class MaintenanceWindowResponseDTO {
     private LocalDateTime endTime;
     private String windowStatus;
     private String executionStatus;
-
     private String requestedByUsername;
     private String rejectionReason;
-
     private String decidedBy;
-    private LocalDateTime decidedAt;
-
     private List<Long> networkElementIds;
     private List<String> networkElementCodes;
     private List<String> networkElementNames;

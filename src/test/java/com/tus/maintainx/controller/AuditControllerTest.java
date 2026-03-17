@@ -1,8 +1,8 @@
 package com.tus.maintainx.controller;
 
-import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.AuditLogResponseDTO;
 import com.tus.maintainx.repository.UserRepository;
+import com.tus.maintainx.security.JwtAuthenticationFilter;
 import com.tus.maintainx.service.AuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,12 +29,10 @@ class AuditControllerTest {
 
     @MockitoBean
     AuditService auditService;
-
-    @MockitoBean
-    JwtUtils jwtUtils;
-
     @MockitoBean
     UserRepository userRepository;
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void all_ok() throws Exception {
