@@ -7,6 +7,7 @@ import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
     @Autowired
@@ -39,7 +41,7 @@ class AuthControllerTest {
     JwtUtils jwtUtils;
 
     @Test
-    void login_validCredentials_returns200AndToken() throws Exception {
+    void login_validCredentials() throws Exception {
         LoginRequest req = new LoginRequest("engineer1@mail.com", "pass");
 
         Authentication auth = mock(Authentication.class);
@@ -54,7 +56,7 @@ class AuthControllerTest {
         when(userRepo.findByUsername("engineer1@mail.com")).thenReturn(user);
         when(jwtUtils.generateToken("engineer1@mail.com", "ENGINEER")).thenReturn("jwt-token");
 
-                mvc.perform(post("/api/v1/auth/login")
+        mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andExpect(status().isOk())
@@ -65,12 +67,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_invalidCredentials_returns401() throws Exception {
+    void login_invalidCredentials() throws Exception {
         LoginRequest req = new LoginRequest("bad@mail.com", "bad");
 
         when(authManager.authenticate(any())).thenThrow(new RuntimeException("bad creds"));
 
-                mvc.perform(post("/api/v1/auth/login")
+        mvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(om.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized())
@@ -78,7 +80,41 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_invalidEmail_returns400() throws Exception {
+    void login_notAuthenticated() throws Exception {
+        LoginRequest req = new LoginRequest("engineer1@mail.com", "pass");
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(false);
+        when(authManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
+
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(om.writeValueAsString(req)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+    @Test
+    void loginAuthenticatedUserMissing() throws Exception {
+        LoginRequest req = new LoginRequest("engineer1@mail.com", "pass");
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(authManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(auth);
+        when(userRepo.findByUsername("engineer1@mail.com")).thenReturn(null);
+
+        mvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(om.writeValueAsString(req)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.username").value("engineer1@mail.com"))
+                .andExpect(jsonPath("$.message").value("Invalid username or password"));
+    }
+
+
+    @Test
+    void login_invalidEmail() throws Exception {
         LoginRequest req = new LoginRequest("bad", "pass");
 
         mvc.perform(post("/api/v1/auth/login")

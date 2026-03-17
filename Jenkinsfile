@@ -28,23 +28,20 @@ pipeline {
       }
     }
 
-    stage('Build, Test & Coverage') {
-      steps {
-        powershell 'mvn -B -T 1C clean verify'
-      }
-    }
+    stage('Build, Test, Package & Sonar') {
+               steps {
+                   withSonarQubeEnv('LocalSonar') {
+                       powershell '''
+                           mvn -B -T 1C clean verify sonar:sonar `
+                               "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
+                               "-Dsonar.host.url=$env:SONAR_HOST_URL" `
+                               "-Dsonar.token=$env:SONAR_TOKEN"
+                       '''
+                   }
+                   archiveArtifacts artifacts: 'target/*.jar'
+               }
+           }
 
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('LocalSonar') {
-          powershell '''
-            mvn -B sonar:sonar `
-              "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
-              "-Dsonar.token=$env:SONAR_TOKEN"
-          '''
-        }
-      }
-    }
 
     stage('UI Tests (Selenium)') {
       when {

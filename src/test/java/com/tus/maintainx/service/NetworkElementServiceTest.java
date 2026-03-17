@@ -121,7 +121,7 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void getByElementId_NotFound() {
+    void getByElementIdNotFoundTest() {
         when(repo.findById(999L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -131,7 +131,7 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void updateHappyPathTest() {
+    void updateTest() {
         NetworkElementEntity existing = new NetworkElementEntity(
                 1L, "NE-OLD", "Old", "OLDTYPE", "OldRegion", "DEACTIVE"
         );
@@ -157,7 +157,7 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void update_NotFound() {
+    void updateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -168,7 +168,7 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void deactivate_NotFound() {
+    void deactivateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -179,7 +179,7 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void activate_NotFound() {
+    void activateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,

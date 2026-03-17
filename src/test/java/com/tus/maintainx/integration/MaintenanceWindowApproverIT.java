@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(classes = MaintainXApplication.class)
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
 class MaintenanceWindowApproverIT {
 
     @Autowired
@@ -49,7 +47,7 @@ class MaintenanceWindowApproverIT {
     JwtUtils jwtUtils;
 
     @Test
-    void approve_ShouldReturnApproved_AndSetDecidedBy() throws Exception {
+    void approvedTest() throws Exception {
         long id = 10L;
         String token = "mock-approver-token";
 
@@ -94,7 +92,7 @@ class MaintenanceWindowApproverIT {
     }
 
     @Test
-    void reject_ShouldReturnRejected_AndSetReason_AndDecidedBy() throws Exception {
+    void rejectedTest() throws Exception {
         long id = 11L;
         String token = "mock-approver-token";
 
@@ -137,7 +135,7 @@ class MaintenanceWindowApproverIT {
     }
 
     @Test
-    void approve_WithoutAuth_ShouldBeRejectedBySecurity() throws Exception {
+    void approve_WithoutAuth() throws Exception {
         mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/approve", 10L))
                 .andExpect(status().is4xxClientError());
     }

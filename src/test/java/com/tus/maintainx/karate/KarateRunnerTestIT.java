@@ -1,13 +1,11 @@
-package com.tus.maintainx.integration;
+package com.tus.maintainx.karate;
 
 import com.intuit.karate.junit5.Karate;
 import com.tus.maintainx.MaintainXApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(classes = MaintainXApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
 class KarateRunnerTestIT {
 
     private static int port;
@@ -19,7 +17,10 @@ class KarateRunnerTestIT {
 
     @Karate.Test
     Karate api() {
-        return Karate.run("classpath:karate/audit.feature", "classpath:karate/analytics.feature")
+        return Karate.run(
+                        "classpath:com/tus/maintainx/karate/audit.feature",
+                        "classpath:com/tus/maintainx/karate/analytics.feature"
+                )
                 .systemProperty("karate.baseUrl", "http://localhost:" + port);
     }
 }
