@@ -60,7 +60,7 @@ pipeline {
                        mvn -B -T 1C verify `
                          "-DskipUnitTests=true" `
                          "-DskipITs=false" `
-                         "-Dit.test=*SeleniumIT" `
+                         "-Dit.test=*E2ETest" `
                          "-Dspring.profiles.active=ui-test" `
                          "-Dselenium.baseUrl=http://localhost:8080"
             '''
