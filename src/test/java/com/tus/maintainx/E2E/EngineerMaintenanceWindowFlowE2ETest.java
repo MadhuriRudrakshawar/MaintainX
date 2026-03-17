@@ -25,8 +25,10 @@ class EngineerMaintenanceWindowFlowE2ETest extends AbstractSeleniumFlowTest {
         waitForVisible(org.openqa.selenium.By.id("addWindowPanel"));
 
         driver.findElement(org.openqa.selenium.By.id("mwTitle")).sendKeys("Engineer Flow Window");
-        setDateTimeValue("mwStart", LocalDateTime.now().plusDays(1).withSecond(0).withNano(0));
-        setDateTimeValue("mwEnd", LocalDateTime.now().plusDays(1).plusHours(2).withSecond(0).withNano(0));
+        LocalDateTime start = LocalDateTime.now().plusDays(1).withHour(12).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime end = start.plusHours(2);
+        setDateTimeValue("mwStart", start);
+        setDateTimeValue("mwEnd", end);
 
         List<org.openqa.selenium.WebElement> checkboxes = driver.findElements(org.openqa.selenium.By.cssSelector("#mwElements input[type='checkbox']"));
         assertFalse(checkboxes.isEmpty());
