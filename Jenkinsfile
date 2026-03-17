@@ -10,7 +10,7 @@ pipeline {
   parameters {
      booleanParam(
         name: 'RUN_UI_TESTS',
-        defaultValue: false,
+        defaultValue: true,
         description: 'Run Selenium UI tests'
      )
   }
@@ -57,11 +57,13 @@ pipeline {
          }
          steps {
             powershell '''
-                mvn -B -T 1C verify -DskipUnitTests=true -DskipITs=false
-                 "-Dit.test=*SeleniumIT"
-                 "-Dspring.profiles.active=ui-test"
-                 "-Dselenium.baseUrl=http://localhost:8080"
-             '''
+                       mvn -B -T 1C verify `
+                         "-DskipUnitTests=true" `
+                         "-DskipITs=false" `
+                         "-Dit.test=*SeleniumIT" `
+                         "-Dspring.profiles.active=ui-test" `
+                         "-Dselenium.baseUrl=http://localhost:8080"
+            '''
          }
     }
 
