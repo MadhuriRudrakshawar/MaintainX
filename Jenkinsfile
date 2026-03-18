@@ -21,11 +21,7 @@ pipeline {
     SONAR_PROJECT_KEY = 'maintainx'
   }
 
-  triggers {
-    pollSCM('H/2 * * * *')
-  }
-
-  tools {
+   tools {
     maven 'Maven_3'
   }
 
