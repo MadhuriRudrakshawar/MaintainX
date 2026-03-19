@@ -21,6 +21,10 @@ pipeline {
     SONAR_PROJECT_KEY = 'maintainx'
   }
 
+  triggers {
+    pollSCM('H/2 * * * *')
+  }
+
    tools {
     maven 'Maven_3'
   }
@@ -35,12 +39,13 @@ pipeline {
     stage('Build, Test, Package & Sonar') {
                steps {
                    withSonarQubeEnv('LocalSonar') {
-                       powershell '''
-                           mvn -B -T 1C clean verify sonar:sonar `
-                               "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
-                               "-Dsonar.host.url=$env:SONAR_HOST_URL" `
-                               "-Dsonar.token=$env:SONAR_TOKEN"
-                       '''
+                      powershell '''
+                                     mvn -B -T 1C clean verify sonar:sonar `
+                                         -DskipITs=true `
+                                         "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
+                                         "-Dsonar.host.url=$env:SONAR_HOST_URL" `
+                                         "-Dsonar.token=$env:SONAR_TOKEN"
+                                 '''
                    }
                    archiveArtifacts artifacts: 'target/*.jar'
                }

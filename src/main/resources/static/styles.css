@@ -1,7 +1,7 @@
 
 :root {
     --bs-body-bg: #f5f7fa;
-    --bs-border-color: #dee2e6;
+    --bs-border-color: #020915;
     --bs-light: #f8f9fa;
     --surface-border-color: rgba(50, 93, 136, 0.22);
     --surface-shadow: 0 0.5rem 1.25rem rgba(50, 93, 136, 0.12);
@@ -51,10 +51,9 @@ body {
 
 #loginView .login-hero-left-col {
     overflow: hidden;
-    background:
-        linear-gradient(140deg, #173a62 0%, #245487 50%, #3e7fc2 100%),
-        radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.20), transparent 36%),
-        radial-gradient(circle at 85% 82%, rgba(173, 216, 255, 0.22), transparent 42%);
+    background: linear-gradient(140deg, #173a62 0%, #245487 50%, #3e7fc2 100%),
+    radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.20), transparent 36%),
+    radial-gradient(circle at 85% 82%, rgba(173, 216, 255, 0.22), transparent 42%);
 }
 
 #loginView .login-hero-right-col {
@@ -79,10 +78,9 @@ body {
     flex: 1;
     width: 100%;
     min-height: 100%;
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%),
-        radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.25), transparent 38%),
-        radial-gradient(circle at 88% 84%, rgba(173, 216, 255, 0.22), transparent 42%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%),
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.25), transparent 38%),
+    radial-gradient(circle at 88% 84%, rgba(173, 216, 255, 0.22), transparent 42%);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 0;
     padding: clamp(1.75rem, 4vw, 3rem);
@@ -308,6 +306,21 @@ body {
     padding-top: 0.8rem;
     padding-bottom: 0.8rem;
     vertical-align: middle;
+}
+
+
+#neTable_wrapper table.dataTable thead th,
+#neTable_wrapper table.dataTable tbody td,
+#mwTable_wrapper table.dataTable thead th,
+#mwTable_wrapper table.dataTable tbody td {
+    border-right: 1px solid var(--bs-border-color) !important;
+}
+
+#neTable_wrapper table.dataTable thead th:first-child,
+#neTable_wrapper table.dataTable tbody td:first-child,
+#mwTable_wrapper table.dataTable thead th:first-child,
+#mwTable_wrapper table.dataTable tbody td:first-child {
+    border-left: 1px solid var(--bs-border-color) !important;
 }
 
 #neTable_wrapper .dataTables_scrollBody,
