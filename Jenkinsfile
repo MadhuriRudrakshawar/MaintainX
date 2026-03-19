@@ -51,6 +51,16 @@ pipeline {
                }
            }
 
+    stage('Integration Tests') {
+      steps {
+        powershell '''
+          mvn -B -T 1C verify `
+            "-DskipUnitTests=true" `
+            "-DskipITs=false" `
+            "-Dit.test=*IT"
+        '''
+      }
+    }
 
     stage('UI Tests (Selenium)') {
       when {

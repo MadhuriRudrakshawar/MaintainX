@@ -103,8 +103,8 @@ body {
 #loginView .login-branding::before {
     width: 22rem;
     height: 22rem;
-    top: -9rem;
-    right: -6rem;
+    top: -3rem;
+    right: -3rem;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 68%);
 }
 
