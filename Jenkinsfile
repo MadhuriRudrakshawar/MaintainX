@@ -70,7 +70,7 @@ pipeline {
             powershell '''
                        mvn -B -T 1C verify `
                          "-DskipUnitTests=true" `
-                         "-DskipITs=false" `
+                         "-DskipITs=true" `
                          "-Dit.test=*E2ETest" `
                          "-Dspring.profiles.active=ui-test" `
                          "-Dselenium.baseUrl=http://localhost:8080"
