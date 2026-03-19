@@ -1,3 +1,8 @@
+/**
+ * Repository interface for audit log.
+ * Handles database access for audit log.
+ */
+
 package com.tus.maintainx.repository;
 
 

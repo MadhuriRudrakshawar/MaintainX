@@ -1,3 +1,8 @@
+/**
+ * Service class for maintenance window.
+ * Handles business operations for maintenance window.
+ */
+
 package com.tus.maintainx.service;
 
 

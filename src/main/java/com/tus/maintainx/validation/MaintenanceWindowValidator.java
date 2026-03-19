@@ -1,3 +1,8 @@
+/**
+ * Validator class for maintenance window.
+ * Checks incoming data before processing.
+ */
+
 package com.tus.maintainx.validation;
 
 import com.tus.maintainx.entity.NetworkElementEntity;

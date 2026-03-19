@@ -1,3 +1,8 @@
+/**
+ * DTO class for error.
+ * Carries data between API layers.
+ */
+
 package com.tus.maintainx.dto;
 
 import lombok.AllArgsConstructor;

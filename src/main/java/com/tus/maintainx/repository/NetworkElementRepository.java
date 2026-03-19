@@ -1,3 +1,8 @@
+/**
+ * Repository interface for network element.
+ * Handles database access for network element.
+ */
+
 package com.tus.maintainx.repository;
 
 import com.tus.maintainx.entity.NetworkElementEntity;

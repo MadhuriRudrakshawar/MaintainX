@@ -1,3 +1,8 @@
+/**
+ * Service class for network element.
+ * Handles business operations for network element.
+ */
+
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;

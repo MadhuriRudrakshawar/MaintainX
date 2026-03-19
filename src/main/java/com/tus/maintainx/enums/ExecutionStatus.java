@@ -1,3 +1,8 @@
+/**
+ * Enum for execution status.
+ * Defines fixed constant values used in the app.
+ */
+
 package com.tus.maintainx.enums;
 
 

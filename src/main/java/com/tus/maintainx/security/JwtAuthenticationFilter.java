@@ -1,3 +1,8 @@
+/**
+ * Security filter class for JWT authentication.
+ * Validates tokens for incoming HTTP requests.
+ */
+
 package com.tus.maintainx.security;
 
 import com.tus.maintainx.config.JwtUtils;

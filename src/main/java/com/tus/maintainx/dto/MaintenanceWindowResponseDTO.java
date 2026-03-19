@@ -1,3 +1,8 @@
+/**
+ * DTO class for maintenance window.
+ * Carries data between API layers.
+ */
+
 package com.tus.maintainx.dto;
 
 import lombok.Builder;

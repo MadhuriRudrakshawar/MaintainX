@@ -1,3 +1,8 @@
+/**
+ * Entity class for audit log.
+ * Maps audit log data to a database table.
+ */
+
 package com.tus.maintainx.entity;
 
 import com.tus.maintainx.enums.AuditAction;

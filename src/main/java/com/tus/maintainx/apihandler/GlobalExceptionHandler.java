@@ -1,3 +1,8 @@
+/**
+ * Exception handler class for API errors.
+ * Converts exceptions to consistent API responses.
+ */
+
 package com.tus.maintainx.apihandler;
 
 

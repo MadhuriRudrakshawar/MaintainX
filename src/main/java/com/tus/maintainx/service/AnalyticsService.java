@@ -1,3 +1,8 @@
+/**
+ * Service class for analytics.
+ * Handles business operations for analytics.
+ */
+
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.AnalyticsDashboardResponseDTO;

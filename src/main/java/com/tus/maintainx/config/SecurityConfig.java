@@ -1,3 +1,8 @@
+/**
+ * Configuration class for security.
+ * Sets authentication and authorization rules.
+ */
+
 package com.tus.maintainx.config;
 
 import com.tus.maintainx.security.JwtAuthenticationFilter;

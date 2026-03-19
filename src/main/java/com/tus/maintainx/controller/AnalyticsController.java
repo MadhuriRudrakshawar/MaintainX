@@ -1,3 +1,8 @@
+/**
+ * REST controller for analytics.
+ * Handles API requests for analytics.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.AnalyticsDashboardResponseDTO;

@@ -1,3 +1,8 @@
+/**
+ * REST controller for maintenance window.
+ * Handles API requests for maintenance window.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.MaintenanceWindowCreateRequestDTO;

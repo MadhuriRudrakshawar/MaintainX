@@ -1,3 +1,8 @@
+/**
+ * Entity class for network element.
+ * Maps network element data to a database table.
+ */
+
 package com.tus.maintainx.entity;
 
 import jakarta.persistence.*;

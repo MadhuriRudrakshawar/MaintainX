@@ -1,3 +1,8 @@
+/**
+ * Repository interface for user.
+ * Handles database access for user.
+ */
+
 package com.tus.maintainx.repository;
 
 import com.tus.maintainx.entity.UserEntity;

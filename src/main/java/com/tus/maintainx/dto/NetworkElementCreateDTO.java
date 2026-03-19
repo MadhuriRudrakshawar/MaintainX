@@ -1,3 +1,8 @@
+/**
+ * DTO class for network element create.
+ * Carries data between API layers.
+ */
+
 package com.tus.maintainx.dto;
 
 

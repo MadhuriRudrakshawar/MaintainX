@@ -1,3 +1,8 @@
+/**
+ * Main application class for MaintainX.
+ * Starts the Spring Boot application.
+ */
+
 package com.tus.maintainx;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;

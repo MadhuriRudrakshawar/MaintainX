@@ -1,3 +1,8 @@
+/**
+ * REST controller for network element.
+ * Handles API requests for network element.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;

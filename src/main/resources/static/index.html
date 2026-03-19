@@ -17,31 +17,35 @@
 <body class="bg-body-tertiary">
 
 <!-- ===================== LOGIN VIEW ===================== -->
-<div class="min-vh-100 d-flex align-items-center py-5" id="loginView">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-                <div class="card shadow-lg border-0">
-                    <div class="card-body p-4 p-lg-5">
-                        <div class="text-center mb-4">
-                            <img alt="MaintainX" class="rounded mb-3" height="72" src="images/logo.png" width="72">
-                            <h1 class="fw-bold fs-2 mb-1">Maintain<span class="text-primary">X</span></h1>
-                            <p class="fw-semibold mb-1">Network Maintenance Scheduler</p>
-                            <p class="text-muted small mb-0">Schedule • Approve • Track maintenance</p>
-                        </div>
-                        <div class="border rounded p-3">
-                            <h2 class="h5 fw-bold text-center mb-3">Login</h2>
-                            <div aria-live="polite" class="alert alert-danger small py-2 d-none" id="loginError"
-                                 role="alert"></div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold" for="username">Email</label>
-                                <input class="form-control" id="username" placeholder="name@mail.com" type="email">
+<div class="min-vh-100 d-flex align-items-stretch" id="loginView">
+    <div class="container-fluid px-0">
+        <div class="row g-0 align-items-stretch login-hero-row">
+            <div class="col-12 col-lg-6 login-hero-left-col">
+                <div class="login-branding">
+                    <img alt="MaintainX" class="rounded mb-3" height="48" src="images/logo.png" width="48">
+                    <h1 class="login-branding-title mb-2">Maintain<span class="text-primary">X</span></h1>
+                    <p class="login-branding-subtitle mb-2">Network Maintenance Scheduler</p>
+                    <p class="login-branding-tagline mb-0">Schedule &bull; Approve &bull; Track maintenance</p>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6 login-hero-right-col">
+                <div class="login-form-shell">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body p-4 p-lg-5">
+                            <div class="border rounded p-3">
+                                <h2 class="h5 fw-bold text-center mb-3">Login</h2>
+                                <div aria-live="polite" class="alert alert-danger small py-2 d-none" id="loginError"
+                                     role="alert"></div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" for="username">Email</label>
+                                    <input class="form-control" id="username" placeholder="name@mail.com" type="email">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" for="password">Password</label>
+                                    <input class="form-control" id="password" placeholder="Password" type="password">
+                                </div>
+                                <button class="btn btn-primary w-100" id="loginBtn">Login</button>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold" for="password">Password</label>
-                                <input class="form-control" id="password" placeholder="Password" type="password">
-                            </div>
-                            <button class="btn btn-primary w-100" id="loginBtn">Login</button>
                         </div>
                     </div>
                 </div>

@@ -1,3 +1,8 @@
+/**
+ * REST controller for audit log.
+ * Handles API requests for audit log.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.AuditLogResponseDTO;

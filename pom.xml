@@ -35,6 +35,9 @@
         <jjwt.version>0.13.0</jjwt.version>
         <karate.version>1.4.1</karate.version>
         <sonar.exclusions>src/test/resources/karate/**/*.feature</sonar.exclusions>
+
+        <jacoco.version>0.8.11</jacoco.version>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencyManagement>
@@ -243,7 +246,7 @@
                     <!-- Generate coverage report -->
                     <execution>
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>

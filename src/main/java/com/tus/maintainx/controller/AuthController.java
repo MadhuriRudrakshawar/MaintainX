@@ -1,3 +1,8 @@
+/**
+ * Controller for authentication.
+ * Handles login requests and returns JWT tokens.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.config.JwtUtils;

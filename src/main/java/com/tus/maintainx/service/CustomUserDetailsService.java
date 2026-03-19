@@ -1,3 +1,8 @@
+/**
+ * Service class for custom user details.
+ * Handles business operations for custom user details.
+ */
+
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.entity.UserEntity;

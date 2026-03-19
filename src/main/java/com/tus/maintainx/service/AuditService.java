@@ -1,3 +1,8 @@
+/**
+ * Service class for audit.
+ * Handles business operations for audit.
+ */
+
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.AuditLogResponseDTO;
