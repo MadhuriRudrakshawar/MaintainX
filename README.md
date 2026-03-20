@@ -223,10 +223,8 @@ see [Authentication](#authentication) below).
 ### 1. Create the database
 
 ```sql
-CREATE
-DATABASE IF NOT EXISTS maintainx_db;
-USE
-maintainx_db;
+CREATE DATABASE IF NOT EXISTS maintainx_db;
+USE maintainx_db;
 ```
 
 ### 2. Set environment variables before starting the app
@@ -234,12 +232,12 @@ maintainx_db;
 **Windows (Command Prompt):**
 
 ```cmd
-set DB_URL=jdbc:mysql://localhost:3306/maintainx_db?useSSL=false&serverTimezone=UTC
+set DB_URL=jdbc:mysql://localhost:3306/maintainx_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 set DB_USERNAME=your_mysql_user
 set DB_PASSWORD=your_mysql_password
 set DB_DRIVER=com.mysql.cj.jdbc.Driver
 set DB_DIALECT=org.hibernate.dialect.MySQLDialect
-set JWT_SECRET=your-strong-secret-here
+set JWT_SECRET=8uV3pQ9mW2xK7nZ5cR1tY6aS0dF4gJ8pL3nV7qW
 
 mvn spring-boot:run
 ```
