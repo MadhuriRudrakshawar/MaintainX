@@ -2,13 +2,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DELETE FROM maintenance_window_elements;
 DELETE FROM maintenance_windows;
-DELETE FROM audit_log;
 DELETE FROM network_element;
 DELETE FROM users;
 
 ALTER TABLE maintenance_window_elements AUTO_INCREMENT = 1;
 ALTER TABLE maintenance_windows AUTO_INCREMENT = 1;
-ALTER TABLE audit_log AUTO_INCREMENT = 1;
 ALTER TABLE network_element AUTO_INCREMENT = 1;
 ALTER TABLE users AUTO_INCREMENT = 1;
 
