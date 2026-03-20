@@ -1,3 +1,8 @@
+/**
+ * Utility class for JWT authentication.
+ * Creates and validates JWT tokens.
+ */
+
 package com.tus.maintainx.config;
 
 import io.jsonwebtoken.Claims;

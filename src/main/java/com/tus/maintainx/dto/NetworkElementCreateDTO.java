@@ -1,8 +1,12 @@
+/**
+ * DTO class for network element create.
+ * Carries data between API layers.
+ */
+
 package com.tus.maintainx.dto;
 
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,12 +16,9 @@ import lombok.NoArgsConstructor;
 public class NetworkElementCreateDTO {
 
     @NotBlank
-    private String elementCode;
-
-    @NotBlank
     private String name;
 
-    @NotNull
+    @NotBlank
     private String elementType;
 
     @NotBlank

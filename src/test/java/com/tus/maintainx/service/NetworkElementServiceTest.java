@@ -5,6 +5,7 @@ import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.enums.AuditEntityType;
+import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -36,7 +36,6 @@ class NetworkElementServiceTest {
     @BeforeEach
     void setup() {
         dto = new NetworkElementCreateDTO(
-                "  NE-001  ",
                 "  Core Router  ",
                 "  ROUTER  ",
                 "  Dublin  ",
@@ -49,21 +48,23 @@ class NetworkElementServiceTest {
 
         when(repo.save(any(NetworkElementEntity.class))).thenAnswer(invocation -> {
             NetworkElementEntity e = invocation.getArgument(0);
-            e.setId(10L);
+            if (e.getId() == null) {
+                e.setId(10L);
+            }
             return e;
         });
 
         NetworkElementResponseDTO created = service.create(dto);
 
         assertNotNull(created.getId());
-        assertEquals("NE-001", created.getElementCode());
+        assertEquals("NE-010", created.getElementCode());
         assertEquals("Core Router", created.getName());
         assertEquals("ROUTER", created.getElementType());
         assertEquals("Dublin", created.getRegion());
         assertEquals("ACTIVE", created.getStatus());
 
-        verify(repo, times(1)).save(any(NetworkElementEntity.class));
-        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 10L, AuditAction.CREATED, "Network element created: NE-001");
+        verify(repo, times(2)).save(any(NetworkElementEntity.class));
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 10L, AuditAction.CREATED, "Network element created: NE-010");
     }
 
 
@@ -120,23 +121,23 @@ class NetworkElementServiceTest {
     }
 
     @Test
-    void getByElementId_NotFound() {
+    void getByElementIdNotFoundTest() {
         when(repo.findById(999L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        Exception ex = assertThrows(NotFoundException.class,
                 () -> service.getByElementId(999L));
 
-        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("Network element not found with id=999", ex.getMessage());
     }
 
     @Test
-    void updateHappyPathTest() {
+    void updateTest() {
         NetworkElementEntity existing = new NetworkElementEntity(
                 1L, "NE-OLD", "Old", "OLDTYPE", "OldRegion", "DEACTIVE"
         );
 
         NetworkElementCreateDTO updateDto = new NetworkElementCreateDTO(
-                "  NE-001  ", "  Core Router  ", "  ROUTER  ", "  Dublin  ", "ACTIVE"
+                "  Core Router  ", "  ROUTER  ", "  Dublin  ", "ACTIVE"
         );
 
         when(repo.findById(1L)).thenReturn(Optional.of(existing));
@@ -145,46 +146,46 @@ class NetworkElementServiceTest {
         NetworkElementResponseDTO updated = service.update(1L, updateDto);
 
         assertEquals(1L, updated.getId());
-        assertEquals("NE-001", updated.getElementCode());
+        assertEquals("NE-OLD", updated.getElementCode());
         assertEquals("Core Router", updated.getName());
         assertEquals("ROUTER", updated.getElementType());
         assertEquals("Dublin", updated.getRegion());
         assertEquals("ACTIVE", updated.getStatus());
         verify(repo).findById(1L);
         verify(repo).save(existing);
-        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.UPDATED, "Network element updated: NE-001");
+        verify(auditService).log(AuditEntityType.NETWORK_ELEMENT, 1L, AuditAction.UPDATED, "Network element updated: NE-OLD");
     }
 
     @Test
-    void update_NotFound() {
+    void updateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        NotFoundException ex = assertThrows(NotFoundException.class,
                 () -> service.update(123L, dto));
 
-        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("Network element not found with id=123", ex.getMessage());
         verify(repo, never()).save(any());
     }
 
     @Test
-    void deactivate_NotFound() {
+    void deactivateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        NotFoundException ex = assertThrows(NotFoundException.class,
                 () -> service.deactivate(123L));
 
-        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("Network element not found with id=123", ex.getMessage());
         verify(repo, never()).save(any());
     }
 
     @Test
-    void activate_NotFound() {
+    void activateNotFoundTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        NotFoundException ex = assertThrows(NotFoundException.class,
                 () -> service.activate(123L));
 
-        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("Network element not found with id=123", ex.getMessage());
         verify(repo, never()).save(any());
     }
 
@@ -192,10 +193,10 @@ class NetworkElementServiceTest {
     void deleteEntityNotExistedTest() {
         when(repo.findById(123L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        NotFoundException ex = assertThrows(NotFoundException.class,
                 () -> service.delete(123L));
 
-        assertEquals(404, ex.getStatusCode().value());
+        assertEquals("Network element not found with id=123", ex.getMessage());
         verify(repo, never()).deleteById(anyLong());
         verifyNoInteractions(auditService);
     }

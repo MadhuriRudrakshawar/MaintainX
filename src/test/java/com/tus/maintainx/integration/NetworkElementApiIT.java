@@ -1,5 +1,6 @@
 package com.tus.maintainx.integration;
 
+import com.tus.maintainx.MaintainXApplication;
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
 import com.tus.maintainx.entity.UserEntity;
 import com.tus.maintainx.repository.NetworkElementRepository;
@@ -9,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
@@ -20,8 +21,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ActiveProfiles("test")
-@SpringBootTest
+@SpringBootTest(classes = MaintainXApplication.class)
 @AutoConfigureMockMvc
 class NetworkElementApiIT {
 
@@ -37,6 +37,9 @@ class NetworkElementApiIT {
     @Autowired
     UserRepository userRepository;
 
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void cleanDb() {
         repo.deleteAll();
@@ -44,7 +47,7 @@ class NetworkElementApiIT {
             UserEntity user = new UserEntity();
             user.setUsername("it-user");
             user.setRole("USER");
-            user.setPassword("test-password");
+            user.setPassword(passwordEncoder.encode("test-password"));
             userRepository.save(user);
         }
     }
@@ -53,7 +56,7 @@ class NetworkElementApiIT {
     void networkElementsE2ETest() throws Exception {
 
         NetworkElementCreateDTO dto = new NetworkElementCreateDTO(
-                "NE-100", "Edge Switch", "SWITCH", "Cork", "ACTIVE"
+                "Edge Switch", "SWITCH", "Cork", "ACTIVE"
         );
 
         String createResp = mvc.perform(post("/api/v1/network-elements")
@@ -63,7 +66,7 @@ class NetworkElementApiIT {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.elementCode").value("NE-100"))
+                .andExpect(jsonPath("$.elementCode").value("NE-001"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -76,7 +79,7 @@ class NetworkElementApiIT {
                 .andExpect(jsonPath("$", hasSize(1)));
 
         NetworkElementCreateDTO putUpdate = new NetworkElementCreateDTO(
-                "NE-100", "Edge Switch Updated", "SWITCH", "Cork", "ACTIVE"
+                "Edge Switch Updated", "SWITCH", "Cork", "ACTIVE"
         );
 
         mvc.perform(put("/api/v1/network-elements/" + id)
@@ -113,7 +116,7 @@ class NetworkElementApiIT {
     @Test
     void updateWithPatchNotAllowedIT() throws Exception {
         NetworkElementCreateDTO createDto = new NetworkElementCreateDTO(
-                "NE-200", "Aggregation Switch", "SWITCH", "Limerick", "ACTIVE"
+                "Aggregation Switch", "SWITCH", "Limerick", "ACTIVE"
         );
 
         String createResp = mvc.perform(post("/api/v1/network-elements")
@@ -129,7 +132,7 @@ class NetworkElementApiIT {
         long id = objectMapper.readTree(createResp).get("id").asLong();
 
         NetworkElementCreateDTO patchDto = new NetworkElementCreateDTO(
-                "NE-200", "Aggregation Switch Updated", "SWITCH", "Limerick", "ACTIVE"
+                "Aggregation Switch Updated", "SWITCH", "Limerick", "ACTIVE"
         );
 
         mvc.perform(patch("/api/v1/network-elements/" + id)

@@ -69,8 +69,8 @@ class MaintenanceWindowServiceTest {
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
-        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
         dto.setNetworkElementIds(List.of(10L, 11L)); // used by service
 
         UserEntity user = new UserEntity();
@@ -125,8 +125,8 @@ class MaintenanceWindowServiceTest {
 
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
-        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
         dto.setNetworkElementIds(List.of(10L, 11L)); // expects 2
 
         UserEntity user = new UserEntity();
@@ -157,8 +157,8 @@ class MaintenanceWindowServiceTest {
         MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
         dto.setTitle("Patch");
         dto.setDescription("Planned");
-        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
         dto.setNetworkElementIds(List.of(10L, 11L));
 
         UserEntity user = new UserEntity();
@@ -184,6 +184,26 @@ class MaintenanceWindowServiceTest {
         assertTrue(ex.getMessage().contains("NE2"));
 
         verify(mwRepo, never()).save(any(MaintenanceWindowEntity.class));
+    }
+
+    @Test
+    void create_ShouldRejectRestrictedTimeWindow() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowCreateRequestDTO dto = new MaintenanceWindowCreateRequestDTO();
+        dto.setTitle("Restricted");
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 8, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 9, 30));
+        dto.setNetworkElementIds(List.of(10L));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.create(dto));
+        assertEquals("Request violates policy: restricted time window.", ex.getMessage());
+        verifyNoInteractions(userRepo, neRepo);
+        verify(mwRepo, never()).save(any());
     }
 
 
@@ -309,8 +329,8 @@ class MaintenanceWindowServiceTest {
         MaintenanceWindowUpdateRequestDTO dto = new MaintenanceWindowUpdateRequestDTO();
         dto.setTitle("Updated");
         dto.setDescription("New desc");
-        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 20, 0));
-        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 22, 0));
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
         dto.setNetworkElementIds(List.of(1L, 2L));
 
         MaintenanceWindowResponseDTO resp = service.update(10L, dto);
@@ -319,6 +339,99 @@ class MaintenanceWindowServiceTest {
         assertEquals(2, resp.getNetworkElementIds().size());
 
         verify(mwRepo).save(any(MaintenanceWindowEntity.class));
+    }
+
+    @Test
+    void updateDecidedByMissingTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowEntity existing = new MaintenanceWindowEntity();
+        existing.setId(10L);
+        existing.setWindowStatus("PENDING");
+        existing.setDecidedBy("   ");
+        existing.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(existing));
+
+        NetworkElementEntity n1 = new NetworkElementEntity();
+        n1.setId(2L);
+        n1.setElementCode("NE-2");
+        n1.setName("NE2");
+        when(neRepo.findAllById(List.of(2L))).thenReturn(List.of(n1));
+
+        when(mwRepo.save(any(MaintenanceWindowEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaintenanceWindowUpdateRequestDTO dto = new MaintenanceWindowUpdateRequestDTO();
+        dto.setTitle("Updated");
+        dto.setDescription("New desc");
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
+        dto.setNetworkElementIds(List.of(2L));
+
+        MaintenanceWindowResponseDTO resp = service.update(10L, dto);
+
+        assertEquals("PENDING", resp.getDecidedBy());
+        assertEquals("PENDING", existing.getDecidedBy());
+    }
+
+    @Test
+    void updateDecidedByPresentTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowEntity existing = new MaintenanceWindowEntity();
+        existing.setId(10L);
+        existing.setWindowStatus("PENDING");
+        existing.setDecidedBy("approver1");
+        existing.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(existing));
+
+        NetworkElementEntity n1 = new NetworkElementEntity();
+        n1.setId(1L);
+        n1.setElementCode("NE-1");
+        n1.setName("NE1");
+        when(neRepo.findAllById(List.of(1L))).thenReturn(List.of(n1));
+
+        when(mwRepo.save(any(MaintenanceWindowEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MaintenanceWindowUpdateRequestDTO dto = new MaintenanceWindowUpdateRequestDTO();
+        dto.setTitle("Updated");
+        dto.setDescription("New desc");
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 12, 30));
+        dto.setNetworkElementIds(List.of(1L));
+
+        MaintenanceWindowResponseDTO resp = service.update(10L, dto);
+
+        assertEquals("approver1", resp.getDecidedBy());
+        assertEquals("approver1", existing.getDecidedBy());
+    }
+
+    @Test
+    void update_ShouldRejectRestrictedTimeWindow() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        NetworkElementRepository neRepo = mock(NetworkElementRepository.class);
+        UserRepository userRepo = mock(UserRepository.class);
+
+        MaintenanceWindowService service = createService(mwRepo, neRepo, userRepo);
+
+        MaintenanceWindowUpdateRequestDTO dto = new MaintenanceWindowUpdateRequestDTO();
+        dto.setTitle("Restricted update");
+        dto.setStartTime(LocalDateTime.of(2026, 12, 18, 10, 30));
+        dto.setEndTime(LocalDateTime.of(2026, 12, 18, 11, 30));
+        dto.setNetworkElementIds(List.of(1L));
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.update(10L, dto));
+        assertEquals("Request violates policy: restricted time window.", ex.getMessage());
+        verify(mwRepo, never()).findById(anyLong());
+        verify(mwRepo, never()).save(any());
+        verifyNoInteractions(neRepo);
     }
 
     @Test
@@ -421,6 +534,26 @@ class MaintenanceWindowServiceTest {
     }
 
     @Test
+    void approveAuthenticatedUserMissingTest() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = createService(mwRepo, null, null);
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setWindowStatus("PENDING");
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        SecurityContext ctx = mock(SecurityContext.class);
+        when(ctx.getAuthentication()).thenReturn(null);
+        SecurityContextHolder.setContext(ctx);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.approve(10L));
+        assertEquals("Authenticated user not found", ex.getMessage());
+        verify(mwRepo, never()).save(any());
+    }
+
+    @Test
     void rejectWindowTest() {
         MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
         MaintenanceWindowService service = createService(mwRepo, null, null);
@@ -497,6 +630,24 @@ class MaintenanceWindowServiceTest {
         BadRequestException ex = assertThrows(BadRequestException.class, () -> service.reject(10L, "No"));
         assertTrue(ex.getMessage().toLowerCase().contains("only pending"));
 
+        verify(mwRepo, never()).save(any());
+    }
+
+    @Test
+    void reject_ShouldFailWhenAuthenticatedUsernameBlank() {
+        MaintenanceWindowRepository mwRepo = mock(MaintenanceWindowRepository.class);
+        MaintenanceWindowService service = createService(mwRepo, null, null);
+
+        MaintenanceWindowEntity mw = new MaintenanceWindowEntity();
+        mw.setId(10L);
+        mw.setWindowStatus("PENDING");
+        mw.setNetworkElements(new HashSet<>());
+        when(mwRepo.findById(10L)).thenReturn(Optional.of(mw));
+
+        mockAuthenticatedUser("   ");
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> service.reject(10L, "No"));
+        assertEquals("Authenticated user not found", ex.getMessage());
         verify(mwRepo, never()).save(any());
     }
 }

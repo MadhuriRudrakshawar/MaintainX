@@ -1,3 +1,8 @@
+/**
+ * REST controller for network element.
+ * Handles API requests for network element.
+ */
+
 package com.tus.maintainx.controller;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
@@ -5,6 +10,7 @@ import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.service.NetworkElementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/network-elements")
+@SecurityRequirement(name = "bearerAuth")
 @RequiredArgsConstructor
 @Tag(name = "Network Elements", description = "APIs for managing network elements")
 public class NetworkElementController {

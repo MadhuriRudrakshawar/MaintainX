@@ -1,3 +1,8 @@
+/**
+ * Service class for network element.
+ * Handles business operations for network element.
+ */
+
 package com.tus.maintainx.service;
 
 import com.tus.maintainx.dto.NetworkElementCreateDTO;
@@ -5,16 +10,17 @@ import com.tus.maintainx.dto.NetworkElementResponseDTO;
 import com.tus.maintainx.entity.NetworkElementEntity;
 import com.tus.maintainx.enums.AuditAction;
 import com.tus.maintainx.enums.AuditEntityType;
+import com.tus.maintainx.exception.NotFoundException;
 import com.tus.maintainx.repository.NetworkElementRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NetworkElementService {
 
     private final NetworkElementRepository networkElementRepository;
@@ -23,13 +29,15 @@ public class NetworkElementService {
     public NetworkElementResponseDTO create(NetworkElementCreateDTO dto) {
 
         NetworkElementEntity e = new NetworkElementEntity();
-        e.setElementCode(dto.getElementCode().trim());
+        e.setElementCode(buildPendingCode());
         e.setName(dto.getName().trim());
         e.setElementType(dto.getElementType().trim());
         e.setRegion(dto.getRegion().trim());
         e.setStatus(dto.getStatus());
 
         NetworkElementEntity saved = networkElementRepository.save(e);
+        saved.setElementCode(buildElementCode(saved.getId()));
+        saved = networkElementRepository.save(saved);
 
         auditService.log(
                 AuditEntityType.NETWORK_ELEMENT,
@@ -37,6 +45,7 @@ public class NetworkElementService {
                 AuditAction.CREATED,
                 "Network element created: " + saved.getElementCode()
         );
+        log.info("Network element {} created", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -58,9 +67,7 @@ public class NetworkElementService {
 
     private NetworkElementEntity getById(Long id) {
         return networkElementRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Network element not found with id=" + id
+                .orElseThrow(() -> new NotFoundException("Network element not found with id=" + id
                 ));
     }
 
@@ -68,7 +75,6 @@ public class NetworkElementService {
 
         NetworkElementEntity existing = getById(id);
 
-        existing.setElementCode(dto.getElementCode().trim());
         existing.setName(dto.getName().trim());
         existing.setElementType(dto.getElementType().trim());
         existing.setRegion(dto.getRegion().trim());
@@ -82,6 +88,7 @@ public class NetworkElementService {
                 AuditAction.UPDATED,
                 "Network element updated: " + saved.getElementCode()
         );
+        log.info("Network element {} updated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -99,6 +106,7 @@ public class NetworkElementService {
                 AuditAction.DEACTIVATED,
                 "Network element deactivated: " + saved.getElementCode()
         );
+        log.info("Network element {} deactivated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -116,6 +124,7 @@ public class NetworkElementService {
                 AuditAction.ACTIVATED,
                 "Network element activated: " + saved.getElementCode()
         );
+        log.info("Network element {} activated", saved.getElementCode());
 
         return toDto(saved);
     }
@@ -129,11 +138,20 @@ public class NetworkElementService {
                 AuditAction.DELETED,
                 "Network element deleted: " + existing.getElementCode()
         );
+        log.info("Network element {} deleted", existing.getElementCode());
 
         networkElementRepository.deleteById(id);
     }
 
     public NetworkElementResponseDTO getByElementId(Long id) {
         return toDto(getById(id));
+    }
+
+    private String buildElementCode(Long id) {
+        return String.format("NE-%03d", id);
+    }
+
+    private String buildPendingCode() {
+        return "PENDING-" + System.nanoTime();
     }
 }

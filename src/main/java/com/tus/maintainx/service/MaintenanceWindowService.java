@@ -1,3 +1,8 @@
+/**
+ * Service class for maintenance window.
+ * Handles business operations for maintenance window.
+ */
+
 package com.tus.maintainx.service;
 
 
@@ -15,6 +20,7 @@ import com.tus.maintainx.repository.NetworkElementRepository;
 import com.tus.maintainx.repository.UserRepository;
 import com.tus.maintainx.validation.MaintenanceWindowValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +32,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MaintenanceWindowService {
 
     private static final String STATUS_PENDING = "PENDING";
@@ -72,6 +79,7 @@ public class MaintenanceWindowService {
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         auditService.log(saved.getId(), AuditAction.CREATED, "Maintenance window created");
+        log.info("Maintenance window {} created by '{}' for {} network element(s)", saved.getId(), username, elements.size());
         return toResponse(saved);
     }
 
@@ -121,9 +129,9 @@ public class MaintenanceWindowService {
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         auditService.log(saved.getId(), AuditAction.UPDATED, "Maintenance window updated");
+        log.info("Maintenance window {} updated with {} network element(s)", saved.getId(), elements.size());
         return toResponse(saved);
     }
-
 
     private MaintenanceWindowResponseDTO toResponse(MaintenanceWindowEntity e) {
         List<NetworkElementEntity> sortedElements = e.getNetworkElements().stream()
@@ -158,6 +166,7 @@ public class MaintenanceWindowService {
         }
         auditService.log(id, AuditAction.CANCELLED, "Maintenance window deleted");
         maintenanceWindowRepository.deleteById(id);
+        log.info("Maintenance window {} deleted", id);
 
     }
 
@@ -178,6 +187,7 @@ public class MaintenanceWindowService {
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         auditService.log(saved.getId(), AuditAction.APPROVED, "Maintenance window approved");
+        log.info("Maintenance window {} approved by '{}'", saved.getId(), approver);
         return toResponse(saved);
     }
 
@@ -202,6 +212,7 @@ public class MaintenanceWindowService {
 
         MaintenanceWindowEntity saved = maintenanceWindowRepository.save(e);
         auditService.log(saved.getId(), AuditAction.REJECTED, "Maintenance window rejected: " + reason.trim());
+        log.info("Maintenance window {} rejected by '{}'", saved.getId(), approver);
         return toResponse(saved);
     }
 

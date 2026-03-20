@@ -1,3 +1,8 @@
+/**
+ * DTO class for audit log.
+ * Carries data between API layers.
+ */
+
 package com.tus.maintainx.dto;
 
 import lombok.AllArgsConstructor;

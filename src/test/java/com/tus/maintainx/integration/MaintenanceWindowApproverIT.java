@@ -1,5 +1,6 @@
 package com.tus.maintainx.integration;
 
+import com.tus.maintainx.MaintainXApplication;
 import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.entity.MaintenanceWindowEntity;
 import com.tus.maintainx.entity.NetworkElementEntity;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(classes = MaintainXApplication.class)
 @AutoConfigureMockMvc
 class MaintenanceWindowApproverIT {
 
@@ -46,7 +47,7 @@ class MaintenanceWindowApproverIT {
     JwtUtils jwtUtils;
 
     @Test
-    void approve_ShouldReturnApproved_AndSetDecidedBy() throws Exception {
+    void approvedTest() throws Exception {
         long id = 10L;
         String token = "mock-approver-token";
 
@@ -91,7 +92,7 @@ class MaintenanceWindowApproverIT {
     }
 
     @Test
-    void reject_ShouldReturnRejected_AndSetReason_AndDecidedBy() throws Exception {
+    void rejectedTest() throws Exception {
         long id = 11L;
         String token = "mock-approver-token";
 
@@ -134,7 +135,7 @@ class MaintenanceWindowApproverIT {
     }
 
     @Test
-    void approve_WithoutAuth_ShouldBeRejectedBySecurity() throws Exception {
+    void approve_WithoutAuth() throws Exception {
         mockMvc.perform(patch("/api/v1/maintenance-windows/{id}/approve", 10L))
                 .andExpect(status().is4xxClientError());
     }

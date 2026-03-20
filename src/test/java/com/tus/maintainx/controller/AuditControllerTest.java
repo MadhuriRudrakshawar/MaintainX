@@ -1,7 +1,8 @@
 package com.tus.maintainx.controller;
 
-import com.tus.maintainx.config.JwtUtils;
 import com.tus.maintainx.dto.AuditLogResponseDTO;
+import com.tus.maintainx.repository.UserRepository;
+import com.tus.maintainx.security.JwtAuthenticationFilter;
 import com.tus.maintainx.service.AuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +29,10 @@ class AuditControllerTest {
 
     @MockitoBean
     AuditService auditService;
-
     @MockitoBean
-    JwtUtils jwtUtils;
+    UserRepository userRepository;
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Test
     void all_ok() throws Exception {
@@ -55,5 +57,54 @@ class AuditControllerTest {
                 .andExpect(jsonPath("$[0].action").value("APPROVED"));
 
         verify(auditService).getAll();
+    }
+
+    @Test
+    void getByEntityType_ok() throws Exception {
+        AuditLogResponseDTO row = AuditLogResponseDTO.builder()
+                .id(11L)
+                .entityType("NETWORK_ELEMENT")
+                .entityId(50L)
+                .action("UPDATED")
+                .username("admin1")
+                .roleName("ADMIN")
+                .details("Updated network element")
+                .createdAt(LocalDateTime.of(2026, 3, 2, 9, 15))
+                .build();
+
+        when(auditService.getByEntityType("NETWORK_ELEMENT")).thenReturn(List.of(row));
+
+        mockMvc.perform(get("/api/v1/audit-logs/type/NETWORK_ELEMENT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].entityType").value("NETWORK_ELEMENT"))
+                .andExpect(jsonPath("$[0].entityId").value(50))
+                .andExpect(jsonPath("$[0].action").value("UPDATED"));
+
+        verify(auditService).getByEntityType("NETWORK_ELEMENT");
+    }
+
+    @Test
+    void getByEntity_ok() throws Exception {
+        AuditLogResponseDTO row = AuditLogResponseDTO.builder()
+                .id(12L)
+                .entityType("MAINTENANCE_WINDOW")
+                .entityId(77L)
+                .action("REJECTED")
+                .username("approver2")
+                .roleName("APPROVER")
+                .details("Rejected maintenance window")
+                .createdAt(LocalDateTime.of(2026, 3, 3, 14, 0))
+                .build();
+
+        when(auditService.getByEntity("MAINTENANCE_WINDOW", 77L)).thenReturn(List.of(row));
+
+        mockMvc.perform(get("/api/v1/audit-logs/type/MAINTENANCE_WINDOW/77"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(12))
+                .andExpect(jsonPath("$[0].entityType").value("MAINTENANCE_WINDOW"))
+                .andExpect(jsonPath("$[0].entityId").value(77))
+                .andExpect(jsonPath("$[0].action").value("REJECTED"));
+
+        verify(auditService).getByEntity("MAINTENANCE_WINDOW", 77L);
     }
 }

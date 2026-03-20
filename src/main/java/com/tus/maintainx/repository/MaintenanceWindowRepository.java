@@ -1,3 +1,8 @@
+/**
+ * Repository interface for maintenance window.
+ * Handles database access for maintenance window.
+ */
+
 package com.tus.maintainx.repository;
 
 import com.tus.maintainx.entity.MaintenanceWindowEntity;

@@ -1,3 +1,8 @@
+/**
+ * Entity class for user.
+ * Maps user data to a database table.
+ */
+
 package com.tus.maintainx.entity;
 
 import jakarta.persistence.*;

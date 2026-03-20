@@ -1,7 +1,19 @@
 pipeline {
   agent any
 
-options { disableConcurrentBuilds() }
+  options {
+    disableConcurrentBuilds()
+    durabilityHint('PERFORMANCE_OPTIMIZED')
+    skipDefaultCheckout(true)
+  }
+
+  parameters {
+     booleanParam(
+        name: 'RUN_UI_TESTS',
+        defaultValue: true,
+        description: 'Run Selenium UI tests'
+     )
+  }
 
   environment {
     GITHUB_TOKEN = credentials('github-token')
@@ -13,7 +25,7 @@ options { disableConcurrentBuilds() }
     pollSCM('H/2 * * * *')
   }
 
-  tools {
+   tools {
     maven 'Maven_3'
   }
 
@@ -24,25 +36,52 @@ options { disableConcurrentBuilds() }
       }
     }
 
-    stage('Build, Test & Coverage') {
+    stage('Build, Test, Package & Sonar') {
+               steps {
+                   withSonarQubeEnv('LocalSonar') {
+                      powershell '''
+                                     mvn -B -T 1C clean verify sonar:sonar `
+                                         -DskipITs=true `
+                                         "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY" `
+                                         "-Dsonar.host.url=$env:SONAR_HOST_URL" `
+                                         "-Dsonar.token=$env:SONAR_TOKEN"
+                                 '''
+                   }
+                   archiveArtifacts artifacts: 'target/*.jar'
+               }
+           }
+
+    stage('Integration Tests') {
       steps {
-        powershell 'mvn -B clean verify'
+        powershell '''
+          mvn -B -T 1C verify `
+            "-DskipUnitTests=true" `
+            "-DskipITs=false" `
+            "-Dit.test=*IT"
+        '''
       }
     }
 
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv('LocalSonar') {
-          powershell '''
-            mvn -B sonar:sonar "-Dsonar.projectKey=$env:SONAR_PROJECT_KEY"
-          '''
-        }
-      }
+    stage('UI Tests (Selenium)') {
+      when {
+         expression { return params.RUN_UI_TESTS }
+         }
+         steps {
+            powershell '''
+                       mvn -B -T 1C verify `
+                         "-DskipUnitTests=true" `
+                         "-DskipITs=true" `
+                         "-Dit.test=*E2ETest" `
+                         "-Dspring.profiles.active=ui-test" `
+                         "-Dselenium.baseUrl=http://localhost:8080"
+            '''
+         }
     }
+
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 15, unit: 'MINUTES') {
+        timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
@@ -51,7 +90,7 @@ options { disableConcurrentBuilds() }
 
   post {
     always {
-      junit 'target/surefire-reports/*.xml'
+      junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml,target/failsafe-reports/*.xml'
 
       publishHTML(target: [
         reportDir: 'target/site/jacoco',
@@ -60,6 +99,9 @@ options { disableConcurrentBuilds() }
         keepAll: true,
         alwaysLinkToLastBuild: true
       ])
+
+      archiveArtifacts artifacts: 'target/screenshots/**', fingerprint: false, allowEmptyArchive: true
+      archiveArtifacts artifacts: 'target/*.jar', fingerprint: true, allowEmptyArchive: true
     }
   }
 }
