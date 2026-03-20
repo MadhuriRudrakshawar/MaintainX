@@ -1,0 +1,1420 @@
+$(function () {
+    const API = "/api/v1/network-elements";
+    const MW_API = "/api/v1/maintenance-windows";
+    const ANALYTICS_API = "/api/v1/analytics/dashboard";
+    const TOKEN_KEY = "accessToken";
+    const mwCache = new Map();
+
+    $.ajaxSetup({
+        beforeSend: function (xhr) {
+            const token = sessionStorage.getItem(TOKEN_KEY);
+            if (token) {
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
+            }
+        }
+    });
+
+    $(document).ajaxError(function (_event, xhr, settings) {
+        const url = settings && settings.url ? String(settings.url) : "";
+        const authEndpoint = url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/logout");
+
+        if (xhr && xhr.status === 401 && !authEndpoint) {
+            clearSessionData();
+            hideAllRolePages();
+            showLogin();
+            alert("Session expired. Please login again.");
+            return;
+        }
+
+        if (xhr && xhr.status === 403 && !authEndpoint) {
+            alert(errMsg(xhr) || "Action not allowed");
+        }
+    });
+
+    // ===================== Cache jQuery selectors =====================
+    const $loginView = $("#loginView");
+    const $homeView = $("#homeView");
+
+    const $username = $("#username");
+    const $password = $("#password");
+    const $loginBtn = $("#loginBtn");
+    const $logoutBtn = $("#logoutBtn");
+
+    const $adminPage = $("#adminPage");
+    const $approverPage = $("#approverPage");
+    const $engineerPage = $("#engineerPage");
+    const $rolePages = $adminPage.add($approverPage).add($engineerPage);
+    const $analyticsView = $("#analyticsView");
+    const $viewAnalyticsBtns = $(".js-view-analytics");
+    const $backToDashboardBtn = $("#backToDashboardBtn");
+
+    const charts = {};
+    let activeRole = "";
+
+    const $addElementPanel = $("#addElementPanel");
+    const $showAddElementBtn = $("#showAddElementBtn");
+    const $cancelAddElementBtn = $("#cancelAddElementBtn");
+    const $backFromElementFormBtn = $("#backFromElementFormBtn");
+    const $saveElementBtn = $("#saveElementBtn");
+    const $neTableSection = $("#neTableSection");
+
+    const $adminAuditBtn = $("#adminAuditBtn");
+    const $approverAuditBtn = $("#approverAuditBtn");
+
+    const $auditTableEl = $("#auditTable");
+
+    const $neName = $("#neName");
+    const $neType = $("#neType");
+    const $neRegion = $("#neRegion");
+    const $neForm = $("#neForm");
+    const $statusActive = $("#statusActive");
+    const $statusDeactive = $("#statusDeactive");
+
+    const $neTableEl = $("#neTable");
+    const $mwTableEl = $("#mwTable");
+    const $mwTableSection = $("#mwTableSection");
+
+    const $addWindowPanel = $("#addWindowPanel");
+    const $showAddWindowBtn = $("#showAddWindowBtn");
+    const $cancelAddWindowBtn = $("#cancelAddWindowBtn");
+    const $backFromWindowFormBtn = $("#backFromWindowFormBtn");
+    const $saveWindowBtn = $("#saveWindowBtn");
+
+    const $mwId = $("#mwId");
+    const $mwTitle = $("#mwTitle");
+    const $mwStart = $("#mwStart");
+    const $mwEnd = $("#mwEnd");
+    const $mwElements = $("#mwElements");
+    const $mwForm = $("#mwForm");
+
+    // ===================== Approver Reject Modal (optional) =====================
+
+    const $rejectMwId = $("#rejectMwId");
+    const $rejectReason = $("#rejectReason");
+    const $confirmRejectBtn = $("#confirmRejectBtn");
+
+    const rejectModal = (function () {
+        const el = document.getElementById("rejectModal");
+        if (el && window.bootstrap && window.bootstrap.Modal) {
+            return new bootstrap.Modal(el);
+        }
+        return null;
+    })();
+
+
+    const auditModal = (function () {
+        const el = document.getElementById("auditModal");
+        if (el && window.bootstrap && window.bootstrap.Modal) {
+            return new bootstrap.Modal(el);
+        }
+        return null;
+    })();
+
+    // ===================== DataTables =====================
+    const table = $neTableEl.DataTable({
+        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
+        pageLength: 10,
+        lengthChange: true,
+        lengthMenu: [[5, 10, 20], [5, 10, 20]],
+        scrollY: "320px",
+        scrollCollapse: true,
+        order: [[0, "desc"]],
+        autoWidth: false,
+        rowId: "id",
+        columnDefs: [{orderable: false, targets: 5}],
+        columns: [
+            {data: "elementCode", width: "14%"},
+            {data: "name", width: "24%"},
+            {data: "elementType", width: "16%"},
+            {data: "region", width: "14%"},
+            {data: "status", width: "12%", render: (v) => makeStatusBadge(v)},
+            {data: null, width: "20%", render: () => actionsHtml()}
+        ]
+    });
+
+    const mwTable = $mwTableEl.DataTable({
+        dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
+        pageLength: 10,
+        lengthChange: true,
+        lengthMenu: [[5, 10, 20], [5, 10, 20]],
+        scrollY: "320px",
+        scrollCollapse: true,
+        order: [[0, "desc"]],
+        autoWidth: false,
+        rowId: "id",
+        columnDefs: [
+            {orderable: false, targets: 7},
+            {className: "text-center", targets: [6, 7]}
+        ],
+        columns: [
+            {data: "id", width: "8%", render: (v) => escapeHtml(formatMwNumber(v))},
+            {data: "title", width: "18%", render: (v) => escapeHtml(v || "")},
+            {
+                data: "networkElementNames",
+                width: "22%",
+                render: (v) => renderNetworkElements(v)
+            },
+            {data: "startTime", width: "12%", render: (v) => escapeHtml(formatDateTime(v))},
+            {data: "endTime", width: "12%", render: (v) => escapeHtml(formatDateTime(v))},
+            {
+                data: "windowStatus",
+                width: "12%",
+                render: (v, _t, row) => {
+                    const st = String(v || "");
+                    if (st.toUpperCase() === "REJECTED" && row && row.rejectionReason) {
+                        return escapeHtml(st + " (" + row.rejectionReason + ")");
+                    }
+                    return escapeHtml(st);
+                }
+            },
+            {
+                data: null,
+                width: "12%",
+                render: (_v, _t, row) => renderExecutionStatus(row)
+            },
+            {
+                data: "id",
+                width: "18%",
+                render: (id, _t, row) => mwActionsHtml(id, row)
+            }
+        ]
+    });
+
+    const $pendingMwCards = $("#pendingMwCards");
+
+
+    // ===================== Audit Log DataTable =====================
+    let auditTable = null;
+
+    if ($auditTableEl.length) {
+        auditTable = $auditTableEl.DataTable({
+            dom: "frt<'dt-bottom d-flex align-items-center justify-content-between' i l p>",
+            pageLength: 5,
+            lengthChange: true,
+            lengthMenu: [[5, 10, 20], [5, 10, 20]],
+            scrollY: "320px",
+            scrollCollapse: true,
+            ordering: true,
+            order: [[0, "desc"]],
+            columns: [
+                {data: "createdAt", render: (v) => escapeHtml(formatDateTime(v))},
+                {data: "entityType", render: (v) => escapeHtml(v || "")},
+                {
+                    data: "entityId",
+                    render: (v, _t, row) => escapeHtml(formatAuditEntityId(row && row.entityType, v))
+                },
+                {data: "action", render: (v) => escapeHtml(v || "")},
+                {data: "username", render: (v) => escapeHtml(v || "")},
+                {data: "roleName", render: (v) => escapeHtml(v || "")},
+                {data: "details", render: (v) => escapeHtml(v || "")}
+            ]
+        });
+    }
+
+    // ===================== Initial Routing =====================
+    const savedToken = sessionStorage.getItem(TOKEN_KEY);
+    const savedRole = sessionStorage.getItem("role");
+
+    if (savedToken && savedRole) {
+        showHome();
+        routeByRole(savedRole);
+    } else {
+        clearSessionData();
+        showLogin();
+    }
+
+    // ===================== Auth Events =====================
+    $loginBtn.on("click", login);
+
+    $password.on("keydown", function (e) {
+        if (e.key === "Enter") login();
+    });
+
+    $logoutBtn.on("click", logout);
+    $viewAnalyticsBtns.on("click", openAnalyticsView);
+    $backToDashboardBtn.on("click", closeAnalyticsView);
+
+
+    // ===================== Audit Log (Admin + Approver) =====================
+    $adminAuditBtn.on("click", openAuditLog);
+    $approverAuditBtn.on("click", openAuditLog);
+
+
+    // ===================== Maintenance Window Events =====================
+    $saveWindowBtn.on("click", createMaintenanceWindow);
+    initPanelToggle($showAddWindowBtn, $cancelAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
+
+    $mwStart.add($mwEnd).on("focus click input change", applyMwDateConstraints);
+
+    $mwTableEl.on("click", ".js-mw-delete", function () {
+        const id = $(this).data("id");
+        deleteMaintenanceWindow(id);
+    });
+
+    $mwTableEl.on("click", ".js-mw-edit", function () {
+        const id = Number($(this).data("id"));
+        const row = mwCache.get(id);
+        if (!row) {
+            alert("Unable to load maintenance window for editing");
+            return;
+        }
+        fillMwForm(row);
+        showPanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, $backFromWindowFormBtn);
+    });
+
+// ===================== Approver Actions (Approve/Reject) =====================
+    $pendingMwCards.on("click", ".js-approve", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+
+        if (!confirm("Approve this maintenance request?")) return;
+
+        approveMaintenanceWindow(id);
+    });
+
+    $pendingMwCards.on("click", ".js-reject", function () {
+        const id = Number($(this).data("id"));
+        if (!id) return;
+
+        if (rejectModal && $rejectMwId.length && $rejectReason.length && $confirmRejectBtn.length) {
+            $rejectMwId.val(String(id));
+            $rejectReason.val("");
+            rejectModal.show();
+        } else {
+            const reason = prompt("Enter rejection reason:");
+            if (!reason) {
+                alert("Rejection reason is required");
+                return;
+            }
+            rejectMaintenanceWindow(id, reason.trim());
+        }
+    });
+
+    $confirmRejectBtn.on("click", function () {
+        const id = Number($rejectMwId.val());
+        const reason = ($rejectReason.val() || "").trim();
+
+        if (!id) {
+            alert("Invalid request id");
+            return;
+        }
+
+        if (!reason) {
+            alert("Rejection reason is required");
+            return;
+        }
+
+        rejectMaintenanceWindow(id, reason);
+    });
+
+    // ===================== Network Element Events =====================
+    initPanelToggle($showAddElementBtn, $cancelAddElementBtn, $addElementPanel, $neTableSection, function () {
+        resetElementEditor();
+    }, $backFromElementFormBtn);
+
+    $saveElementBtn.on("click", function () {
+        const payload = readForm();
+        if (!payload) return;
+
+        const editId = $(this).data("editId");
+        const originalStatus = String($(this).data("originalStatus") || "").toUpperCase();
+        const nextStatus = String(payload.status || "").toUpperCase();
+        const isEditDeactivation = Boolean(editId) && originalStatus === "ACTIVE" && nextStatus === "DEACTIVE";
+
+        const submitElementForm = () => saveJson({
+            url: editId ? `${API}/${editId}` : API,
+            method: editId ? "PUT" : "POST",
+            payload,
+            onSuccess: (rowData) => {
+                if (editId) {
+                    updateTableRow(table, rowData);
+                } else {
+                    table.row.add(rowData).draw(false);
+                }
+                hideElementPanel();
+            },
+            errorMessage: editId ? "Update failed" : "Create failed"
+        });
+
+        if (!isEditDeactivation) {
+            submitElementForm();
+            return;
+        }
+
+        canDeactivateNetworkElement(editId)
+            .done((result) => {
+                if (!result.allowed) {
+                    const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                    alert(`Network element is already in use in "${mwName}". Can not be deactivated`);
+                    return;
+                }
+                submitElementForm();
+            })
+            .fail((xhr) => {
+                alert(errMsg(xhr) || "Unable to validate schedule usage");
+                console.log(xhr.responseText);
+            });
+    });
+
+    $neTableEl.on("click", ".js-edit", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        fillForm(data);
+        $saveElementBtn.data("editId", data.id);
+        $saveElementBtn.data("originalStatus", data.status);
+        showPanel($showAddElementBtn, $addElementPanel, $neTableSection, $backFromElementFormBtn);
+    });
+
+    $neTableEl.on("click", ".js-toggle", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        const isActive = String(data.status).toUpperCase() === "ACTIVE";
+        const endpoint = isActive ? "deactivate" : "activate";
+        const actionLabel = isActive ? "deactivate" : "activate";
+        const confirmMessage = `Do you want to ${actionLabel} ${data.elementCode}?`;
+
+        if (isActive) {
+            canDeactivateNetworkElement(data.id)
+                .done((result) => {
+                    if (!result.allowed) {
+                        const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                        alert(`Network element is already in use in "${mwName}".`);
+                        return;
+                    }
+                    if (!confirm(confirmMessage)) return;
+                    patchElementStatus(data.id, endpoint);
+                })
+                .fail((xhr) => {
+                    alert(errMsg(xhr) || "Unable to validate schedule usage");
+                    console.log(xhr.responseText);
+                });
+            return;
+        }
+
+        if (!confirm(confirmMessage)) return;
+        patchElementStatus(data.id, endpoint);
+    });
+
+    $neTableEl.on("click", ".js-delete", function () {
+        const row = table.row($(this).closest("tr"));
+        const data = row.data();
+
+        canDeactivateNetworkElement(data.id)
+            .done((result) => {
+                if (!result.allowed) {
+                    const mwName = result.window && result.window.title ? result.window.title : "scheduled window";
+                    alert(`Network element is already in use in "${mwName}".`);
+                    return;
+                }
+
+                if (!confirm(`Delete ${data.elementCode}?`)) return;
+
+                $.ajax({
+                    url: `${API}/${data.id}`,
+                    method: "DELETE"
+                })
+                    .done(() => {
+                        row.remove().draw(false);
+                    })
+                    .fail((xhr) => {
+                        handleAjaxError(xhr, "Delete failed");
+                    });
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Unable to validate schedule usage");
+            });
+    });
+
+    // ===================== Auth + Page Flow =====================
+    function login() {
+        const username = $username.val().trim();
+        const password = $password.val();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const $loginError = $("#loginError");
+
+        $loginError.addClass("d-none").text("");
+
+        if (!username || !password) {
+            $loginError.text("Enter email and password").removeClass("d-none");
+            return;
+        }
+
+        if (!emailPattern.test(username)) {
+            $loginError.text("Enter a valid email address like admin@mail.com").removeClass("d-none");
+            return;
+        }
+
+        $.ajax({
+            url: "/api/v1/auth/login",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({username, password}),
+            success: function (res) {
+                if (!res || !res.token) {
+                    $loginError.text("Login response missing token").removeClass("d-none");
+                    clearSessionData();
+                    showLogin();
+                    return;
+                }
+
+                sessionStorage.setItem(TOKEN_KEY, String(res.token));
+                sessionStorage.setItem("role", res.role || "");
+                sessionStorage.setItem("username", res.username || username);
+
+                showHome();
+                routeByRole(res.role);
+
+                // clear login inputs
+                $username.val("");
+                $password.val("");
+                $loginError.addClass("d-none").text("");
+            },
+            error: function (xhr) {
+                clearSessionData();
+                $loginError.text(errMsg(xhr) || "Login failed").removeClass("d-none");
+                console.log(xhr.status, xhr.responseText);
+            }
+        });
+    }
+
+    // Load admin table rows.
+    function loadAll() {
+        $.get(API)
+            .done((rows) => {
+                table.clear().rows.add(sortByIdDesc(rows)).draw();
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Failed to load network elements");
+            });
+    }
+
+    function logout() {
+        $.ajax({
+            url: "/api/v1/auth/logout",
+            method: "POST"
+        }).always(function () {
+            $("body").removeClass("analytics-mode");
+            clearSessionData();
+            $username.val("");
+            $password.val("");
+            $analyticsView.addClass("d-none");
+            hideAllRolePages();
+            showLogin();
+        });
+    }
+
+    function clearSessionData() {
+        sessionStorage.removeItem(TOKEN_KEY);
+        sessionStorage.removeItem("role");
+        sessionStorage.removeItem("username");
+    }
+
+    function showHome() {
+        $loginView.addClass("d-none");
+        $homeView.removeClass("d-none");
+    }
+
+    function showLogin() {
+        $homeView.addClass("d-none");
+        $loginView.removeClass("d-none");
+        $("#loginError").addClass("d-none").text("");
+    }
+
+    function hideAllRolePages() {
+        $rolePages.addClass("d-none");
+    }
+
+    function routeByRole(role) {
+        const r = String(role || "").toUpperCase();
+        activeRole = r;
+        $analyticsView.addClass("d-none");
+        hideAllRolePages();
+
+        if (r === "ADMIN") {
+            $adminPage.removeClass("d-none");
+            loadAll();
+        } else if (r === "APPROVER") {
+            $approverPage.removeClass("d-none");
+            loadPendingMaintenanceWindows();
+        } else if (r === "ENGINEER") {
+            $engineerPage.removeClass("d-none");
+            applyMwDateConstraints();
+            loadNetworkElementsForMw();
+            loadMaintenanceWindows();
+        } else {
+            logout();
+        }
+    }
+
+    // Open analytics screen.
+    function openAnalyticsView() {
+        if (!window.Chart) {
+            alert("Chart.js is not available.");
+            return;
+        }
+
+        hideAllRolePages();
+        $analyticsView.removeClass("d-none");
+        $("body").addClass("analytics-mode");
+        renderAnalyticsDashboard();
+    }
+
+    function closeAnalyticsView() {
+        $analyticsView.addClass("d-none");
+        $("body").removeClass("analytics-mode");
+        routeByRole(activeRole || sessionStorage.getItem("role"));
+    }
+
+    // Fetch analytics data and draw charts.
+    function renderAnalyticsDashboard() {
+        $.get(ANALYTICS_API)
+            .done((dashboard) => {
+                drawMaintenanceStatusChart(dashboard.maintenanceStatusCounts || {});
+                drawApprovedWindowScheduleChart(dashboard.approvedWindowTimeline || []);
+                drawElementsByTypeChart(dashboard.elementsByType || {});
+                drawElementHealthChart(dashboard.elementsByStatus || {});
+            })
+            .fail(() => {
+                alert("Failed to load analytics data.");
+            });
+    }
+
+    // ===================== Analytics Charts =====================
+    function mapToEntries(countMap) {
+        return Object.entries(countMap || {});
+    }
+
+    function createOrUpdateChart(canvasId, config) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+        charts[canvasId] = new Chart(canvas, config);
+    }
+
+    function drawMaintenanceStatusChart(statusCounts) {
+        const entries = mapToEntries(statusCounts);
+        createOrUpdateChart("chartMaintenanceStatus", {
+            type: "doughnut",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Windows",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#0d6efd", "#198754", "#dc3545", "#fd7e14", "#6c757d"]
+                }]
+            },
+            options: {responsive: true, maintainAspectRatio: false}
+        });
+    }
+
+    function formatHm(dateObj) {
+        const hh = String(dateObj.getHours()).padStart(2, "0");
+        const mm = String(dateObj.getMinutes()).padStart(2, "0");
+        return `${hh}:${mm}`;
+    }
+
+    function drawElementsByTypeChart(typeCounts) {
+        const entries = mapToEntries(typeCounts);
+        createOrUpdateChart("chartElementsByType", {
+            type: "bar",
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: "#2563eb"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {y: {beginAtZero: true, ticks: {precision: 0}}}
+            }
+        });
+    }
+
+    function drawElementHealthChart(healthCounts) {
+        const normalizedCounts = {
+            ACTIVE: Number(healthCounts.ACTIVE || 0),
+            DEACTIVE: Number(healthCounts.DEACTIVE || 0)
+        };
+        const entries = mapToEntries(normalizedCounts);
+        createOrUpdateChart("chartElementHealth", {
+            type: "pie",
+            data: {
+                labels: entries.map((e) => e[0] === "ACTIVE" ? "Active" : "Deactive"),
+                datasets: [{
+                    label: "Elements",
+                    data: entries.map(e => e[1]),
+                    backgroundColor: ["#198754", "#dc3545"]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom"
+                    }
+                }
+            }
+        });
+    }
+
+    function drawApprovedWindowScheduleChart(approvedWindows) {
+        const $container = $("#approvedWindowScheduleChartWrap");
+        if (!$container.length) return;
+
+        if (charts["chartApprovedWindowSchedule"]) {
+            charts["chartApprovedWindowSchedule"].destroy();
+            delete charts["chartApprovedWindowSchedule"];
+        }
+
+        if (!approvedWindows || approvedWindows.length === 0) {
+            $container.html('<div class="text-muted small">No approved bookings found.</div>');
+            return;
+        }
+
+        const dataPoints = approvedWindows.map(w => {
+            const start = new Date(String(w.startTime).replace(" ", "T")).getTime();
+            const end = new Date(String(w.endTime).replace(" ", "T")).getTime();
+            const mwLabel = formatMwNumber(w.id);
+            const title = String(w.title || "UNTITLED");
+            const displayLabel = mwLabel ? `${mwLabel} ${title}` : title;
+
+            return {
+                x: [start, end],
+                y: displayLabel,
+                title: displayLabel,
+                barLabel: `${formatHm(new Date(start))} - ${formatHm(new Date(end))}`,
+                startLabel: formatDateTime(w.startTime),
+                endLabel: formatDateTime(w.endTime)
+            };
+        });
+
+        const chartHeight = Math.max(260, dataPoints.length * 38 + 60);
+        const containerWidth = $container.innerWidth() || 0;
+        const chartWidth = Math.max(containerWidth, 1200, dataPoints.length * 140);
+
+        $container.html(`
+        <div class="approved-window-chart-inner" style="height: ${chartHeight}px; width: ${chartWidth}px;">
+            <canvas id="chartApprovedWindowSchedule"></canvas>
+        </div>
+    `);
+
+        const minStart = Math.min(...dataPoints.map(point => point.x[0]));
+        const maxEnd = Math.max(...dataPoints.map(point => point.x[1]));
+        const totalRange = Math.max(maxEnd - minStart, 1);
+        const axisPadding = Math.max(totalRange * 0.04, 60 * 60 * 1000);
+
+        const ctx = document.getElementById("chartApprovedWindowSchedule");
+        if (!ctx) return;
+
+        charts["chartApprovedWindowSchedule"] = new Chart(ctx, {
+            type: "bar",
+            data: {
+                datasets: [{
+                    label: "Approved Window Schedule",
+                    data: dataPoints,
+                    backgroundColor: "#2563eb",
+                    borderColor: "#1d4ed8",
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                    barThickness: 34,
+                    minBarLength: 100
+                }]
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: {
+                    xAxisKey: "x",
+                    yAxisKey: "y"
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) {
+                                return items[0].raw.title;
+                            },
+                            label: function (context) {
+                                const raw = context.raw;
+                                return `${raw.startLabel} TO ${raw.endLabel}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: "linear",
+                        position: "top",
+                        min: minStart - axisPadding,
+                        max: maxEnd + axisPadding,
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.28)",
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            callback: function (value) {
+                                return formatApprovedWindowAxis(value);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: "Date / Time"
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: true,
+                            color: "rgba(15, 23, 42, 0.22)",
+                            lineWidth: 1
+                        },
+                        title: {
+                            display: true,
+                            text: "Maintenance Window"
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                id: "approvedWindowBarLabels",
+                afterDatasetsDraw(chart) {
+                    const {ctx} = chart;
+                    const meta = chart.getDatasetMeta(0);
+                    const dataset = chart.data.datasets[0];
+
+                    ctx.save();
+                    ctx.font = "12px sans-serif";
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+
+                    meta.data.forEach((bar, index) => {
+                        const raw = dataset.data[index];
+                        const label = String(raw.barLabel || "");
+                        const x = (bar.x + bar.base) / 2;
+                        const y = bar.y;
+
+                        ctx.fillText(label, x, y);
+                    });
+
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function formatApprovedWindowAxis(value) {
+        const d = new Date(Number(value));
+        if (isNaN(d.getTime())) return "";
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    }
+
+    // ===================== Network Elements =====================
+    function readForm() {
+        if (!validateForm($neForm)) return null;
+
+        const name = $neName.val().trim();
+        const elementType = $neType.val();
+        const region = $neRegion.val();
+        const status = $('input[name="neStatus"]:checked').val();
+
+        return {name, elementType, region, status};
+    }
+
+    function fillForm(e) {
+        $neName.val(e.name);
+        $neType.val(e.elementType);
+        $neRegion.val(e.region);
+
+        const s = String(e.status).toUpperCase();
+        if (s === "DEACTIVE") $statusDeactive.prop("checked", true);
+        else $statusActive.prop("checked", true);
+    }
+
+    function clearForm() {
+        resetFormValidation($neForm);
+        $neName.val("");
+        $neType.val("");
+        $neRegion.val("");
+        $statusActive.prop("checked", true);
+    }
+
+    function resetElementEditor() {
+        clearForm();
+        $saveElementBtn.removeData("editId");
+        $saveElementBtn.removeData("originalStatus");
+    }
+
+    function hideElementPanel() {
+        hidePanel($showAddElementBtn, $addElementPanel, $neTableSection, resetElementEditor, $backFromElementFormBtn);
+    }
+
+    // Reuse the same form panel toggle logic.
+    function initPanelToggle($showBtn, $cancelBtn, $panel, $tableSection, onHide, $backBtn) {
+        $showBtn.on("click", function () {
+            showPanel($showBtn, $panel, $tableSection, $backBtn);
+        });
+
+        $cancelBtn.on("click", function () {
+            hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+        });
+
+        if ($backBtn && $backBtn.length) {
+            $backBtn.on("click", function () {
+                hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn);
+            });
+        }
+    }
+
+    function showPanel($showBtn, $panel, $tableSection, $backBtn) {
+        $panel.removeClass("d-none");
+        $tableSection.addClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.removeClass("d-none");
+        $showBtn.attr("aria-expanded", "true");
+    }
+
+    function hidePanel($showBtn, $panel, $tableSection, onHide, $backBtn) {
+        $panel.addClass("d-none");
+        $tableSection.removeClass("d-none");
+        if ($backBtn && $backBtn.length) $backBtn.addClass("d-none");
+        $showBtn.attr("aria-expanded", "false");
+        if (typeof onHide === "function") onHide();
+    }
+
+    function makeStatusBadge(status) {
+        const s = String(status || "").toUpperCase();
+        return s === "ACTIVE"
+            ? '<span class="badge text-bg-success">ACTIVE</span>'
+            : '<span class="badge text-bg-danger">DEACTIVE</span>';
+    }
+
+    function patchElementStatus(id, endpoint) {
+        $.ajax({
+            url: `${API}/${id}/${endpoint}`,
+            method: "PATCH"
+        })
+            .done((updated) => {
+                updateTableRow(table, updated);
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Status update failed");
+            });
+    }
+
+    function canDeactivateNetworkElement(elementId) {
+        return $.get(MW_API).then((rows) => {
+            const now = Date.now();
+            const blockingWindow = (rows || []).find((mw) => {
+                const status = String((mw && mw.windowStatus) || "").trim().toUpperCase();
+                if (status !== "PENDING" && status !== "APPROVED") return false;
+                const startMs = Date.parse(String((mw && mw.startTime) || ""));
+                const endMs = Date.parse(String((mw && mw.endTime) || ""));
+                if (isNaN(startMs) || isNaN(endMs)) return false;
+                if (endMs < now) return false;
+                const ids = (mw && mw.networkElementIds) || [];
+                return Array.isArray(ids) && ids.includes(Number(elementId));
+            });
+            return {
+                allowed: !blockingWindow,
+                window: blockingWindow || null
+            };
+        });
+    }
+
+    function actionsHtml() {
+        return `
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-primary js-edit">Edit</button>
+        <button type="button" class="btn btn-outline-warning js-toggle">Active/Deactive</button>
+        <button type="button" class="btn btn-outline-danger js-delete">Delete</button>
+      </div>
+    `;
+    }
+
+
+    // ===================== Maintenance Windows =====================
+    function makeExecutionBadge(status) {
+        const s = String(status || "").toUpperCase();
+        if (s === "COMPLETED") return '<span class="badge text-bg-success">COMPLETED</span>';
+        if (s === "IN_PROGRESS") return '<span class="badge text-bg-warning">IN_PROGRESS</span>';
+        if (s === "PLANNED") return '<span class="badge text-bg-secondary">PLANNED</span>';
+        return "";
+    }
+
+    function renderExecutionStatus(row) {
+        const effective = deriveExecutionStatus(row);
+        return effective ? makeExecutionBadge(effective) : '<span class="text-muted">—</span>';
+    }
+
+    function deriveExecutionStatus(row) {
+        const approval = String((row && row.windowStatus) || "").trim().toUpperCase();
+        if (approval !== "APPROVED") return "";
+
+        const now = Date.now();
+        const s = Date.parse(String((row && row.startTime) || ""));
+        const e = Date.parse(String((row && row.endTime) || ""));
+
+        if (isNaN(s) || isNaN(e)) return "";
+        if (now > e) return "COMPLETED";
+        if (now >= s && now <= e) return "IN_PROGRESS";
+        return "PLANNED";
+    }
+
+    function mwActionsHtml(id, row) {
+        const approval = String((row && row.windowStatus) || "").toUpperCase();
+        const canEditDelete = approval === "PENDING";
+
+        const btns = [];
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-primary js-mw-edit" data-id="${id}">Edit</button>`);
+        if (canEditDelete) btns.push(`<button class="btn btn-outline-danger js-mw-delete" data-id="${id}">Delete</button>`);
+
+        if (!btns.length) return `<span class="text-muted">—</span>`;
+
+        return `<div class="btn-group btn-group-sm" role="group">${btns.join("")}</div>`;
+    }
+
+    function renderNetworkElements(values) {
+        const list = Array.isArray(values) ? values : [];
+        if (!list.length) return "";
+        const items = list
+            .map((name) => `<span class="text-break">${escapeHtml(name)}</span>`)
+            .join("");
+        return `<div class="d-flex flex-column gap-1">${items}</div>`;
+    }
+
+    // Load active elements for MW form.
+    function loadNetworkElementsForMw() {
+        $.get(API)
+            .done((rows) => {
+                $mwElements.empty();
+                (rows || [])
+                    .filter((ne) => String((ne && ne.status) || "").trim().toUpperCase() === "ACTIVE")
+                    .forEach((ne) => {
+                        const code = escapeHtml(ne.elementCode || "");
+                        const name = escapeHtml(ne.name || "");
+                        $mwElements.append(`
+                            <label class="mw-element-option">
+                                <input class="form-check-input" type="checkbox" value="${ne.id}">
+                                <span>${code} - ${name}</span>
+                            </label>
+                        `);
+                    });
+            })
+            .fail((xhr) => {
+                alert("Failed to load network elements");
+                console.log(xhr.responseText);
+            });
+    }
+
+    function loadMaintenanceWindows() {
+        $.get(MW_API)
+            .done((rows) => {
+                const sorted = sortByIdDesc(rows);
+                mwCache.clear();
+                sorted.forEach((w) => mwCache.set(Number(w.id), w));
+                mwTable.clear().rows.add(sorted).draw();
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Failed to load maintenance windows");
+            });
+    }
+
+    function createMaintenanceWindow() {
+        const payload = readMwForm();
+        if (!payload) return;
+
+        const editId = $mwId.val().trim();
+        saveJson({
+            url: editId ? `${MW_API}/${editId}` : MW_API,
+            method: editId ? "PUT" : "POST",
+            payload,
+            onSuccess: () => {
+                hidePanel($showAddWindowBtn, $addWindowPanel, $mwTableSection, clearMwForm, $backFromWindowFormBtn);
+                loadMaintenanceWindows();
+            },
+            errorMessage: editId ? "Update failed" : "Create failed"
+        });
+    }
+
+    function loadPendingMaintenanceWindows() {
+        if (!$pendingMwCards.length) return;
+
+        $.get(MW_API)
+            .done((rows) => {
+                const pending = sortByIdDesc(rows)
+                    .filter(r => String(r.windowStatus || "").toUpperCase() === "PENDING");
+                renderPendingMaintenanceWindowCards(pending);
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Failed to load pending maintenance windows");
+            });
+    }
+
+    function renderPendingMaintenanceWindowCards(rows) {
+        const list = Array.isArray(rows) ? rows : [];
+        if (!list.length) {
+            $pendingMwCards.html(`
+                <div class="col-12">
+                    <div class="approver-empty-state">
+                        <div class="fw-semibold mb-1">No pending requests</div>
+                        <div class="text-muted small mb-0">
+                            All maintenance requests have been reviewed. New requests will appear here when submitted.
+                        </div>
+                    </div>
+                </div>
+            `);
+            return;
+        }
+
+        const cardsHtml = list.map((row) => {
+            const id = Number(row && row.id);
+            const title = escapeHtml((row && row.title) || "");
+            const requestedBy = escapeHtml((row && row.requestedByUsername) || "");
+            const startTime = escapeHtml(formatDateTime(row && row.startTime));
+            const endTime = escapeHtml(formatDateTime(row && row.endTime));
+            const status = escapeHtml((row && row.windowStatus) || "");
+            const elementsHtml = renderNetworkElements(row && row.networkElementNames)
+                || '<span class="text-muted">No elements linked</span>';
+            const windowNumber = escapeHtml(formatMwNumber(id));
+
+            return `
+                <div class="col-12 col-md-6 col-xl-4" data-card-id="${id}">
+                    <div class="card h-100 shadow-sm border border-secondary-subtle">
+                        <div class="card-body d-flex flex-column gap-3">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="text-muted small">${windowNumber}</div>
+                                    <h5 class="card-title mb-1">${title}</h5>
+                                    <div class="small text-muted">Requested by ${requestedBy || "Unknown"}</div>
+                                </div>
+                                <span class="badge text-bg-warning">${status || "PENDING"}</span>
+                            </div>
+                            <div>
+                                <div class="small text-muted mb-1">Network Elements</div>
+                                ${elementsHtml}
+                            </div>
+                            <div class="row g-2 small">
+                                <div class="col-sm-6">
+                                    <div class="text-muted">Start</div>
+                                    <div>${startTime || "-"}</div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="text-muted">End</div>
+                                    <div>${endTime || "-"}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 mt-auto">
+                                <button class="btn btn-success btn-sm js-approve" data-id="${id}" type="button">Approve</button>
+                                <button class="btn btn-danger btn-sm js-reject" data-id="${id}" type="button">Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        $pendingMwCards.html(cardsHtml);
+    }
+
+
+    // ===================== Audit + Approvals =====================
+    function openAuditLog() {
+        if (!auditModal) {
+            alert("Audit modal not available");
+            return;
+        }
+
+        if (auditTable) auditTable.clear().draw();
+        loadAuditLogs();
+        auditModal.show();
+    }
+
+    function loadAuditLogs() {
+        if (!auditTable) return;
+
+        $.ajax({
+            url: "/api/v1/audit-logs",
+            method: "GET"
+        })
+            .done((rows) => {
+                const sorted = (rows || []).slice().sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+                auditTable.clear().rows.add(sorted).draw();
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Failed to load audit logs");
+            });
+    }
+
+
+    function approveMaintenanceWindow(id) {
+        $.ajax({
+            url: `${MW_API}/${id}/approve`,
+            method: "PATCH"
+        })
+            .done(() => {
+                loadPendingMaintenanceWindows();
+                // optional: refresh engineer list if they have it open later
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Approve failed");
+            });
+    }
+
+    function rejectMaintenanceWindow(id, reason) {
+        $.ajax({
+            url: `${MW_API}/${id}/reject`,
+            method: "PATCH",
+            contentType: "application/json",
+            data: JSON.stringify({reason: reason})
+        })
+            .done(() => {
+                if (rejectModal) rejectModal.hide();
+                loadPendingMaintenanceWindows();
+            })
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Reject failed");
+            });
+    }
+
+    function deleteMaintenanceWindow(id) {
+        if (!confirm("Delete this maintenance window?")) return;
+
+        $.ajax({
+            url: `${MW_API}/${id}`,
+            method: "DELETE"
+        })
+            .done(() => loadMaintenanceWindows())
+            .fail((xhr) => {
+                handleAjaxError(xhr, "Delete failed");
+            });
+    }
+
+    function readMwForm() {
+        applyMwDateConstraints();
+        if (!validateForm($mwForm)) return null;
+
+        const title = $mwTitle.val().trim();
+        const startTime = $mwStart.val();
+        const endTime = $mwEnd.val();
+
+        const startNum = document.getElementById("mwStart").valueAsNumber;
+        const endNum = document.getElementById("mwEnd").valueAsNumber;
+        const nowNum = Date.now();
+
+        const selected = $mwElements.find("input:checked")
+            .map((_, el) => Number(el.value))
+            .get();
+
+        if (!selected.length) {
+            alert("Please select at least one Network Element");
+            return null;
+        }
+
+        if (startNum < nowNum || endNum < nowNum) {
+            alert("Past date/time is not allowed");
+            return null;
+        }
+
+        if (endNum <= startNum) {
+            alert("End Time must be after Start Time");
+            return null;
+        }
+
+        if (isWithinRestrictedMwTime(startTime, endTime)) {
+            alert("Restricted time: 9:00 AM to 11:00 AM. Bookings are allowed only before or after this window.");
+            return null;
+        }
+
+        return {
+            title: title,
+            description: "",
+            startTime: toSeconds(startTime),
+            endTime: toSeconds(endTime),
+            networkElementIds: selected
+        };
+    }
+
+    function clearMwForm() {
+        resetFormValidation($mwForm);
+        $mwId.val("");
+        $mwTitle.val("");
+        $mwStart.val("");
+        $mwEnd.val("");
+        $mwElements.find("input").prop("checked", false);
+        applyMwDateConstraints();
+    }
+
+    function fillMwForm(w) {
+        const selectedIds = new Set((w.networkElementIds || []).map(String));
+        $mwId.val(w.id);
+        $mwTitle.val(w.title || "");
+        $mwStart.val(toDateTimeLocalValueFromServer(w.startTime));
+        $mwEnd.val(toDateTimeLocalValueFromServer(w.endTime));
+        $mwElements.find("input").each((_, el) => {
+            $(el).prop("checked", selectedIds.has(String(el.value)));
+        });
+        applyMwDateConstraints();
+    }
+
+    function applyMwDateConstraints() {
+        const nowValue = toDateTimeLocalValue(nowLocalMinute());
+
+        $mwStart.attr("min", nowValue);
+
+        const startValue = $mwStart.val();
+        const endMin = (startValue && startValue > nowValue) ? startValue : nowValue;
+        $mwEnd.attr("min", endMin);
+        applyMwTimePolicyFeedback($mwStart);
+        applyMwTimePolicyFeedback($mwEnd);
+    }
+
+    function applyMwTimePolicyFeedback($input) {
+        const value = $input.val();
+        if (!value) {
+            $input.get(0).setCustomValidity("");
+            return;
+        }
+        $input.get(0).setCustomValidity(
+            isWithinRestrictedMwTime($mwStart.val(), $mwEnd.val())
+                ? "Restricted time: 9:00 AM to 11:00 AM. Bookings are allowed only before or after this window."
+                : ""
+        );
+    }
+
+    function isWithinRestrictedMwTime(startValue, endValue) {
+        const startDate = new Date(startValue);
+        const endDate = new Date(endValue);
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+
+        const startMinutes = (startDate.getHours() * 60) + startDate.getMinutes();
+        const endMinutes = (endDate.getHours() * 60) + endDate.getMinutes();
+
+        return startMinutes < (11 * 60) && endMinutes > (9 * 60);
+    }
+
+    function nowLocalMinute() {
+        const d = new Date();
+        d.setSeconds(0, 0);
+        return d;
+    }
+
+    function toDateTimeLocalValue(d) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // ===================== Shared Helpers =====================
+    function validateForm($form) {
+        const form = $form.get(0);
+        if (!form.checkValidity()) {
+            $form.addClass("was-validated");
+            form.reportValidity();
+            return false;
+        }
+        return true;
+    }
+
+    function resetFormValidation($form) {
+        $form.removeClass("was-validated");
+    }
+
+    function toSeconds(dtLocal) {
+        if (!dtLocal) return dtLocal;
+        return dtLocal.length === 16 ? (dtLocal + ":00") : dtLocal;
+    }
+
+    function formatMwNumber(id) {
+        const n = Number(id);
+        if (!Number.isFinite(n) || n <= 0) return "";
+        return "MW-" + String(n).padStart(2, "0");
+    }
+
+    function formatAuditEntityId(entityType, id) {
+        const n = Number(id);
+        if (!Number.isFinite(n) || n <= 0) return id == null ? "" : String(id);
+
+        const type = String(entityType || "").toUpperCase();
+        if (type === "MAINTENANCE_WINDOW") return "MW-" + String(n).padStart(2, "0");
+        if (type === "NETWORK_ELEMENT") return "NE-" + String(n).padStart(3, "0");
+        return String(n);
+    }
+
+    function toDateTimeLocalValueFromServer(val) {
+        if (!val) return "";
+        return String(val).substring(0, 16);
+    }
+
+    function formatDateTime(val) {
+        if (!val) return "";
+        return String(val).replace("T", " ").substring(0, 16);
+    }
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function errMsg(xhr) {
+        try {
+            const j = JSON.parse(xhr.responseText);
+            return j.message;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function handleAjaxError(xhr, fallbackMessage) {
+        alert(errMsg(xhr) || fallbackMessage);
+        console.log(xhr && xhr.responseText ? xhr.responseText : xhr);
+    }
+
+    function sortByIdDesc(rows) {
+        return (rows || []).slice().sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+    }
+
+    function updateTableRow(dataTable, rowData) {
+        dataTable.row("#" + $.escapeSelector(String(rowData.id))).data(rowData).draw(false);
+    }
+
+    function saveJson({url, method, payload, onSuccess, errorMessage}) {
+        $.ajax({
+            url,
+            method,
+            contentType: "application/json",
+            data: JSON.stringify(payload)
+        })
+            .done(onSuccess)
+            .fail((xhr) => {
+                handleAjaxError(xhr, errorMessage);
+            });
+    }
+
+});
+

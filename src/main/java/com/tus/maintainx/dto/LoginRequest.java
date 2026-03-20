@@ -1,0 +1,25 @@
+/**
+ * DTO class for login.
+ * Carries data between API layers.
+ */
+
+package com.tus.maintainx.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginRequest {
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Username must be a valid email address")
+    private String username;
+
+    @NotBlank(message = "Password is required")
+    private String password;
+}
